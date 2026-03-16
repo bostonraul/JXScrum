@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JollyExplorers — Scrum OS</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --amber:#BA7517;--amber-l:#FAEEDA;--amber-d:#633806;
+  --teal:#1D9E75;--teal-l:#E1F5EE;--teal-d:#085041;
+  --coral:#D85A30;--coral-l:#FAECE7;--coral-d:#4A1B0C;
+  --purple:#7F77DD;--purple-l:#EEEDFE;--purple-d:#26215C;
+  --red:#E24B4A;--red-l:#FCEBEB;--red-d:#501313;
+  --bg:#f9f8f5;--card:#fff;--border:#e0ded8;--text:#1a1a18;--muted:#737269;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+
+/* ── SETUP OVERLAY ───────────────────────────────────── */
+#setup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px}
+#setup-overlay.hidden{display:none}
+.setup-box{background:var(--card);border-radius:16px;padding:32px;max-width:620px;width:100%;max-height:90vh;overflow-y:auto}
+.setup-box h2{font-size:18px;font-weight:600;margin-bottom:4px}
+.setup-box .sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+.setup-step{margin-bottom:20px}
+.setup-step h3{font-size:13px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.step-num{background:var(--amber);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.setup-step p{font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.6}
+pre.script-box{background:#1e1e1e;color:#d4d4d4;border-radius:10px;padding:14px;font-size:11px;overflow-x:auto;line-height:1.6;margin-bottom:8px;white-space:pre-wrap;word-break:break-all}
+.copy-btn{font-size:11px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);cursor:pointer;color:var(--muted)}
+.copy-btn:hover{background:var(--amber-l);color:var(--amber-d);border-color:var(--amber)}
+.setup-input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);margin-bottom:8px}
+.setup-input:focus{outline:2px solid var(--amber);border-color:transparent}
+.setup-save{width:100%;padding:11px;background:var(--amber);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px}
+.setup-save:hover{background:var(--amber-d)}
+.setup-err{color:var(--red);font-size:12px;margin-top:6px;display:none}
+
+/* ── TOP BAR ─────────────────────────────────────────── */
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:32px;height:32px;background:var(--amber-l);border-radius:8px;display:flex;align-items:center;justify-content:center;border:1px solid var(--amber)}
+.logo svg{width:16px;height:16px;fill:var(--amber)}
+.brand-name{font-weight:700;font-size:15px}
+.brand-sub{font-size:11px;color:var(--muted)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.sprint-pill{background:var(--amber-l);color:var(--amber-d);font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;border:1px solid var(--amber)}
+.admin-btn{padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--muted);transition:all .15s}
+.admin-btn.active{background:var(--amber);color:#fff;border-color:var(--amber)}
+.sync-btn{padding:6px 12px;border-radius:7px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--muted)}
+.sync-btn:hover{border-color:var(--teal);color:var(--teal)}
+.settings-link{font-size:12px;color:var(--muted);cursor:pointer;padding:6px 8px;border-radius:6px}
+.settings-link:hover{background:var(--bg);color:var(--amber)}
+
+/* ── ADMIN BADGE ─────────────────────────────────────── */
+.admin-bar{background:var(--amber);color:#fff;text-align:center;font-size:11px;font-weight:600;padding:4px;display:none}
+.admin-bar.show{display:block}
+
+/* ── MAIN LAYOUT ─────────────────────────────────────── */
+.container{max-width:1100px;margin:0 auto;padding:20px 20px}
+
+/* ── METRICS STRIP ───────────────────────────────────── */
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
+.metric{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.metric-label{font-size:11px;color:var(--muted);margin-bottom:6px}
+.metric-nums{display:flex;align-items:baseline;gap:4px}
+.metric-cur{font-size:24px;font-weight:700}
+.metric-target{font-size:13px;color:var(--muted)}
+.metric-bar{height:4px;background:#eee;border-radius:2px;margin-top:8px;overflow:hidden}
+.metric-fill{height:100%;border-radius:2px;transition:width .4s}
+.metric-pct{font-size:10px;color:var(--muted);margin-top:4px}
+.m-amber .metric-cur,.m-amber .metric-fill{color:var(--amber);background:var(--amber)}
+.m-teal .metric-cur,.m-teal .metric-fill{color:var(--teal);background:var(--teal)}
+.m-coral .metric-cur,.m-coral .metric-fill{color:var(--coral);background:var(--coral)}
+.m-purple .metric-cur,.m-purple .metric-fill{color:var(--purple);background:var(--purple)}
+.m-red .metric-cur,.m-red .metric-fill{color:var(--red);background:var(--red)}
+.edit-metric-btn{float:right;font-size:11px;color:var(--muted);cursor:pointer;display:none}
+.admin-mode .edit-metric-btn{display:inline}
+
+/* ── NAV ─────────────────────────────────────────────── */
+.nav{display:flex;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:5px;margin-bottom:20px}
+.nav-btn{flex:1;padding:8px 10px;border:none;background:transparent;border-radius:8px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.nav-btn.active{background:var(--amber);color:#fff}
+.nav-btn:hover:not(.active){background:var(--amber-l);color:var(--amber-d)}
+
+/* ── SECTIONS ────────────────────────────────────────── */
+.section{display:none}.section.active{display:block}
+
+/* ── SPRINT PROGRESS ─────────────────────────────────── */
+.sprint-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
+.sprint-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.sprint-title{font-size:14px;font-weight:600}
+.sprint-days{font-size:12px;color:var(--muted)}
+.sprint-track{height:8px;background:#eee;border-radius:4px;overflow:hidden}
+.sprint-fill{height:100%;background:var(--amber);border-radius:4px;transition:width .6s}
+.sprint-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.kpi-item{text-align:center}
+.kpi-val{font-size:15px;font-weight:700}
+.kpi-label{font-size:10px;color:var(--muted);margin-top:2px}
+.kpi-hit{color:var(--teal)}.kpi-partial{color:var(--amber)}.kpi-miss{color:var(--red)}
+
+/* ── DAY TABS ────────────────────────────────────────── */
+.day-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.day-tab{padding:7px 16px;border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;background:var(--card);color:var(--muted);transition:all .15s;font-weight:500}
+.day-tab.active{background:var(--amber-l);color:var(--amber-d);border-color:var(--amber);font-weight:600}
+.day-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.day-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.day-card h3{font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.amber{background:var(--amber)}.dot.teal{background:var(--teal)}.dot.coral{background:var(--coral)}.dot.purple{background:var(--purple)}
+.act-list{display:flex;flex-direction:column;gap:6px}
+.act-item{font-size:12px;color:var(--muted);padding:7px 10px;background:var(--bg);border-radius:7px;display:flex;align-items:flex-start;gap:8px;line-height:1.4}
+.act-tick{color:var(--teal);font-size:11px;margin-top:1px;flex-shrink:0}
+.tag{display:inline-block;font-size:10px;font-weight:600;padding:3px 9px;border-radius:12px;margin:3px 2px 0 0}
+.tag.amber{background:var(--amber-l);color:var(--amber-d)}.tag.teal{background:var(--teal-l);color:var(--teal-d)}.tag.coral{background:var(--coral-l);color:var(--coral-d)}.tag.purple{background:var(--purple-l);color:var(--purple-d)}
+
+/* ── KANBAN ──────────────────────────────────────────── */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kb-col{border-radius:12px;padding:12px}
+.kb-col.done{background:var(--teal-l)}.kb-col.pending{background:var(--amber-l)}.kb-col.upcoming{background:var(--purple-l)}.kb-col.blocked{background:var(--red-l)}
+.kb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.kb-title{font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;color:#fff}
+.kb-col.done .kb-title{background:var(--teal)}.kb-col.pending .kb-title{background:var(--amber)}.kb-col.upcoming .kb-title{background:var(--purple)}.kb-col.blocked .kb-title{background:var(--red)}
+.kb-count{font-size:11px;color:var(--muted);font-weight:600}
+.kb-item{background:var(--card);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px;border:1px solid var(--border);cursor:default;transition:transform .1s,box-shadow .1s}
+.kb-item:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.kb-item-title{font-weight:500;color:var(--text);margin-bottom:4px;line-height:1.3}
+.kb-item-owner{font-size:10px;color:var(--muted)}
+.kb-item-date{font-size:10px;color:var(--muted);float:right}
+.blocked-bar{border-left:3px solid var(--red);border-radius:0 8px 8px 0;padding-left:9px}
+.kb-add{text-align:center;font-size:11px;cursor:pointer;padding:8px;border-radius:7px;border:1.5px dashed;margin-top:4px;font-weight:600;transition:all .15s;display:none}
+.admin-mode .kb-add{display:block}
+.kb-col.done .kb-add{border-color:var(--teal);color:var(--teal)}.kb-col.pending .kb-add{border-color:var(--amber);color:var(--amber)}.kb-col.upcoming .kb-add{border-color:var(--purple);color:var(--purple)}.kb-col.blocked .kb-add{border-color:var(--red);color:var(--red)}
+.kb-add:hover{background:rgba(0,0,0,.04)}
+
+/* ── TASK MODAL ──────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;display:none}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:14px;padding:24px;width:100%;max-width:440px}
+.modal h3{font-size:15px;font-weight:600;margin-bottom:16px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.field input,.field select,.field textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit}
+.field textarea{resize:none;height:72px}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--amber);border-color:transparent}
+.modal-actions{display:flex;gap:8px;margin-top:18px}
+.btn-primary{flex:1;padding:10px;background:var(--amber);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-primary:hover{background:var(--amber-d)}
+.btn-ghost{padding:10px 16px;background:transparent;border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--muted)}
+.btn-danger{padding:10px 14px;background:var(--red-l);color:var(--red-d);border:none;border-radius:8px;font-size:13px;cursor:pointer}
+
+/* ── TEAM ────────────────────────────────────────────── */
+.team-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+.team-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+.avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;margin:0 auto 10px}
+.av-amber{background:var(--amber-l);color:var(--amber-d)}.av-teal{background:var(--teal-l);color:var(--teal-d)}.av-coral{background:var(--coral-l);color:var(--coral-d)}.av-purple{background:var(--purple-l);color:var(--purple-d)}.av-red{background:var(--red-l);color:var(--red-d)}
+.tc-name{font-size:13px;font-weight:600;margin-bottom:2px}
+.tc-role{font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.4}
+.tc-stat{font-size:11px;background:var(--bg);border-radius:7px;padding:6px 8px;color:var(--muted)}
+.mission-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.mission-card p{font-size:13px;color:var(--muted);line-height:1.7}
+.pill-flow{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.step-pill{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600}
+.arrow-sep{color:var(--muted);font-size:14px}
+
+/* ── FUNNEL ──────────────────────────────────────────── */
+.funnel-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.funnel-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.funnel-label{width:160px;font-size:12px;color:var(--muted);text-align:right;flex-shrink:0}
+.funnel-bar-wrap{flex:1;height:36px;border-radius:8px;overflow:hidden;background:#eee}
+.funnel-bar{height:100%;border-radius:8px;display:flex;align-items:center;padding:0 12px;font-size:12px;font-weight:600;color:#fff;transition:width .6s ease}
+.funnel-val{width:36px;font-size:13px;font-weight:700;text-align:right;flex-shrink:0}
+.funnel-pct{width:38px;font-size:11px;color:var(--muted);text-align:right;flex-shrink:0}
+.conv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.conv-card{border-radius:10px;padding:14px}
+.conv-card.amber{background:var(--amber-l)}.conv-card.teal{background:var(--teal-l)}.conv-card.purple{background:var(--purple-l)}
+.conv-title{font-size:10px;font-weight:700;margin-bottom:4px}
+.conv-card.amber .conv-title{color:var(--amber-d)}.conv-card.teal .conv-title{color:var(--teal-d)}.conv-card.purple .conv-title{color:var(--purple-d)}
+.conv-val{font-size:26px;font-weight:700}
+.conv-card.amber .conv-val{color:var(--amber)}.conv-card.teal .conv-val{color:var(--teal)}.conv-card.purple .conv-val{color:var(--purple)}
+.conv-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── STANDUP ─────────────────────────────────────────── */
+.standup-form{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.standup-form h3{font-size:14px;font-weight:600;margin-bottom:14px}
+.form-row-3{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.form-row-2:last-child{margin-bottom:0}
+.s-label{font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+.s-input{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--bg);color:var(--text);font-family:inherit}
+.s-input:focus{outline:2px solid var(--amber);border-color:transparent}
+.s-textarea{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--bg);color:var(--text);font-family:inherit;resize:none;height:68px}
+.s-textarea:focus{outline:2px solid var(--amber);border-color:transparent}
+.submit-btn{width:100%;padding:11px;background:var(--amber);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;margin-top:14px}
+.submit-btn:hover{background:var(--amber-d)}
+.submit-btn:disabled{background:#ccc;cursor:not-allowed}
+
+.log-list{display:flex;flex-direction:column;gap:8px}
+.log-entry{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.log-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.log-name{font-size:12px;font-weight:600}
+.log-time{font-size:10px;color:var(--muted)}
+.log-body{font-size:12px;color:var(--muted);line-height:1.6}
+.log-body b{color:var(--text)}
+.log-empty{font-size:13px;color:var(--muted);text-align:center;padding:24px;background:var(--card);border:1px dashed var(--border);border-radius:10px}
+
+/* ── SETTINGS ────────────────────────────────────────── */
+.settings-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px}
+.settings-card h3{font-size:14px;font-weight:600;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.settings-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.settings-row label{width:160px;font-size:12px;color:var(--muted);flex-shrink:0}
+.settings-row input{flex:1;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--bg);color:var(--text)}
+.settings-row input:focus{outline:2px solid var(--amber);border-color:transparent}
+.save-settings{padding:9px 20px;background:var(--amber);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.danger-btn{padding:9px 16px;background:var(--red-l);color:var(--red-d);border:1px solid var(--red);border-radius:8px;font-size:12px;cursor:pointer;font-weight:600}
+
+/* ── TOAST ───────────────────────────────────────────── */
+#toast{position:fixed;bottom:24px;right:24px;background:#1a1a18;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;transform:translateY(20px);opacity:0;transition:all .25s;pointer-events:none}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{background:var(--teal)}
+#toast.error{background:var(--red)}
+
+/* ── STATUS DOT ──────────────────────────────────────── */
+.sync-status{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#ccc}
+.status-dot.ok{background:var(--teal)}.status-dot.loading{background:var(--amber);animation:pulse 1s infinite}.status-dot.err{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── RESPONSIVE ──────────────────────────────────────── */
+@media(max-width:768px){
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .kanban{grid-template-columns:1fr 1fr}
+  .team-grid{grid-template-columns:repeat(2,1fr)}
+  .day-grid{grid-template-columns:1fr}
+  .form-row-3,.form-row-2{grid-template-columns:1fr}
+  .conv-grid{grid-template-columns:1fr}
+  .sprint-kpis{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:480px){
+  .metrics{grid-template-columns:1fr}
+  .kanban{grid-template-columns:1fr}
+  .team-grid{grid-template-columns:1fr}
+  .nav{flex-wrap:wrap}
+  .nav-btn{flex:none;font-size:11px}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ SETUP OVERLAY ══════════════════════════════════ -->
+<div id="setup-overlay">
+  <div class="setup-box">
+    <h2>⚙️ JollyExplorers Scrum OS — First-time Setup</h2>
+    <p class="sub">Connect your Google Sheet to store tasks, standups, and metrics. Takes about 5 minutes. Do this once.</p>
+
+    <div class="setup-step">
+      <h3><span class="step-num">1</span> Create a Google Sheet</h3>
+      <p>Go to <strong>sheets.google.com</strong> and create a new blank spreadsheet. Name it <em>"JollyExplorers Scrum"</em>.</p>
+    </div>
+
+    <div class="setup-step">
+      <h3><span class="step-num">2</span> Open Apps Script</h3>
+      <p>In your Sheet, click <strong>Extensions → Apps Script</strong>. Delete all existing code, paste the script below, then click <strong>Save (Ctrl+S)</strong>.</p>
+      <pre class="script-box" id="apps-script-code">// JollyExplorers Scrum OS — Backend Script
+// Paste this in Extensions > Apps Script > Save > Deploy
+
+function doGet(e) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (e.parameter.action === 'init') { setupSheets(ss); return json({ success: true }); }
+    const sheet = e.parameter.sheet;
+    const ws = ss.getSheetByName(sheet);
+    if (!ws) return json({ error: 'Sheet not found: ' + sheet });
+    const values = ws.getDataRange().getValues();
+    return json({ data: values });
+  } catch(err) { return json({ error: err.toString() }); }
+}
+
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ws = ss.getSheetByName(payload.sheet);
+    if (payload.action === 'init') { setupSheets(ss); return json({ success: true }); }
+    if (!ws) return json({ error: 'Sheet not found: ' + payload.sheet });
+    if (payload.action === 'append') { ws.appendRow(payload.row); }
+    else if (payload.action === 'update_cell') { ws.getRange(payload.row, payload.col).setValue(payload.value); }
+    else if (payload.action === 'delete_row') {
+      const data = ws.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][0]) === String(payload.id)) { ws.deleteRow(i + 1); break; }
+      }
+    }
+    return json({ success: true });
+  } catch(err) { return json({ error: err.toString() }); }
+}
+
+function json(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function setupSheets(ss) {
+  const defs = {
+    'Metrics':    ['key','target','current','unit','color'],
+    'Tasks':      ['id','title','owner','status','date_added','notes'],
+    'Standups':   ['id','member','day','done','plan','blockers','numbers','timestamp'],
+    'Sprint':     ['key','value'],
+    'Activities': ['day','type','text','tag_color'],
+    'Team':       ['initials','name','role','color','metric_key']
+  };
+  for (const [name, headers] of Object.entries(defs)) {
+    let ws = ss.getSheetByName(name);
+    if (!ws) { ws = ss.insertSheet(name); ws.appendRow(headers); }
+  }
+  // Seed Metrics
+  const m = ss.getSheetByName('Metrics');
+  if (m.getLastRow() < 2) {
+    m.appendRow(['communities_entered', 3, 0, 'count', 'amber']);
+    m.appendRow(['whatsapp_leads',      60, 0, 'count', 'teal']);
+    m.appendRow(['demo_workshops',       2, 0, 'count', 'coral']);
+    m.appendRow(['paid_conversions',    25, 0, 'count', 'purple']);
+    m.appendRow(['repeat_enrollments',  10, 0, 'count', 'red']);
+  }
+  // Seed Sprint
+  const sp = ss.getSheetByName('Sprint');
+  if (sp.getLastRow() < 2) {
+    const now = new Date();
+    sp.appendRow(['sprint_name', 'Sprint W' + getWeek(now)]);
+    sp.appendRow(['start_date',  Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyy-MM-dd')]);
+    sp.appendRow(['day_number', 1]);
+    sp.appendRow(['total_days', 7]);
+  }
+  // Seed Activities (day | type: activity/output | text | tag_color)
+  const act = ss.getSheetByName('Activities');
+  if (act.getLastRow() < 2) {
+    const rows = [
+      ['mon','activity','Identify 5 target gated communities',''],
+      ['mon','activity','Visit bus bays / notice boards in each community',''],
+      ['mon','activity','Speak with FM / security / active parents',''],
+      ['mon','activity','Share QR code → join community WhatsApp funnel',''],
+      ['mon','activity','Put up calendar poster / demo workshop teaser',''],
+      ['mon','output','New WhatsApp group access (3+ communities)','teal'],
+      ['mon','output','20+ new parent contacts logged','amber'],
+      ['mon','output','Demo workshop interest list started','coral'],
+      ['tue','activity','Send welcome message in new WhatsApp groups',''],
+      ['tue','activity','Share Hidden Genius assessment link',''],
+      ['tue','activity','Share upcoming weekend workshop calendar',''],
+      ['tue','activity','Engage in 1:1 chats with interested parents',''],
+      ['tue','activity','Fix demo workshop slot & confirm trainer',''],
+      ['tue','output','10+ demo workshop registrations','teal'],
+      ['tue','output','Engagement replies tracked per group','amber'],
+      ['tue','output','Community awareness — message read %','purple'],
+      ['wed','activity','Conduct 15-minute robotics / VR preview',''],
+      ['wed','activity','Capture child interest & enthusiasm on the spot',''],
+      ['wed','activity','Offer paid weekend workshop signup',''],
+      ['wed','activity','Pitch bundle / incubator program',''],
+      ['wed','output','8–10 paid workshop bookings','coral'],
+      ['wed','output','Parent trust score (collect NPS on the day)','teal'],
+      ['wed','output','Pipeline contacts logged in tracker','purple'],
+      ['thu','activity','Share workshop video reels on WhatsApp groups',''],
+      ['thu','activity','Share child learning outcome testimonials',''],
+      ['thu','activity','Send weekend reminders to all registered parents',''],
+      ['thu','activity','Confirm attendance — get explicit confirmations',''],
+      ['thu','activity','Upsell siblings / ask for referrals',''],
+      ['thu','output','Attendance confirmations — target 90% show-up','purple'],
+      ['thu','output','Reminder message sent to every registered parent','amber'],
+      ['thu','output','3+ referrals captured and logged','teal'],
+      ['fri','activity','Call every registered parent',''],
+      ['fri','activity','Close all pending payments',''],
+      ['fri','activity','Prepare workshop kits and trainer schedule',''],
+      ['fri','activity','Confirm venue setup with FM',''],
+      ['fri','activity','Send excitement message to the entire community',''],
+      ['fri','output','All pending payments collected','amber'],
+      ['fri','output','Kits packed, venue confirmed','teal'],
+      ['fri','output','Show-up rate target: 85%+','coral'],
+      ['sat','activity','Conduct full robotics / VR workshop',''],
+      ['sat','activity','Capture photos and videos for content pipeline',''],
+      ['sat','activity','Collect parent feedback form (NPS)',''],
+      ['sat','activity','Pitch incubator program to interested parents',''],
+      ['sat','activity','Create next workshop interest sign-up list',''],
+      ['sat','output','NPS 8+ from attending families','teal'],
+      ['sat','output','Repeat bookings collected on the day','coral'],
+      ['sat','output','Photo / video content captured','amber'],
+      ['sat','output','Incubator pipeline families logged','purple']
+    ];
+    rows.forEach(r => act.appendRow(r));
+  }
+  // Seed Team
+  const tm = ss.getSheetByName('Team');
+  if (tm.getLastRow() < 2) {
+    tm.appendRow(['CA','Employee A','Community Acquisition Lead','amber','communities_entered']);
+    tm.appendRow(['WM','Employee B','WhatsApp Funnel Manager','teal','whatsapp_leads']);
+    tm.appendRow(['DT','Employee C','Demo Workshop Trainer','coral','demo_workshops']);
+    tm.appendRow(['WO','Employee D','Workshop Operations','purple','demo_workshops']);
+    tm.appendRow(['GL','You / Lead','Growth Manager','red','']);
+  }
+}
+
+function getWeek(d) {
+  const onejan = new Date(d.getFullYear(), 0, 1);
+  return Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+}</pre>
+      <button class="copy-btn" onclick="copyScript()">Copy script</button>
+    </div>
+
+    <div class="setup-step">
+      <h3><span class="step-num">3</span> Deploy as Web App</h3>
+      <p>In Apps Script: Click <strong>Deploy → New deployment</strong>. Type: <em>Web app</em>. Execute as: <em>Me</em>. Who has access: <em>Anyone</em>. Click <strong>Deploy</strong>, approve permissions, and copy the <strong>Web app URL</strong>.</p>
+    </div>
+
+    <div class="setup-step">
+      <h3><span class="step-num">4</span> Enter your details below</h3>
+      <input id="cfg-url" class="setup-input" placeholder="Paste your Web App URL (https://script.google.com/macros/s/...)" />
+      <input id="cfg-password" class="setup-input" type="password" placeholder="Set an admin password (you'll use this to edit data)" />
+      <input id="cfg-sprint" class="setup-input" placeholder="Sprint name (e.g. Sprint W12 · Mar 16–22, 2026)" />
+      <p id="setup-err" class="setup-err">⚠️ Please fill in all fields and make sure the URL starts with https://script.google.com</p>
+      <button class="setup-save" onclick="saveSetup()">Save & Initialize Google Sheet →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TASK MODAL ══════════════════════════════════════ -->
+<div class="modal-overlay" id="task-modal">
+  <div class="modal">
+    <h3 id="modal-title">Add new task</h3>
+    <div class="field"><label>Task title</label><input id="t-title" placeholder="e.g. Enter Prestige community"></div>
+    <div class="field"><label>Owner</label>
+      <select id="t-owner">
+        <option>Employee A – Community Acquisition</option>
+        <option>Employee B – WhatsApp Funnel</option>
+        <option>Employee C – Demo Trainer</option>
+        <option>Employee D – Operations</option>
+        <option>Lead / Growth Manager</option>
+      </select>
+    </div>
+    <div class="field"><label>Status</label>
+      <select id="t-status">
+        <option value="done">Completed</option>
+        <option value="pending">Pending</option>
+        <option value="upcoming">Upcoming</option>
+        <option value="blocked">Blocked</option>
+      </select>
+    </div>
+    <div class="field"><label>Notes (optional)</label><textarea id="t-notes" placeholder="Any context or details..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-danger" id="modal-delete" onclick="deleteTask()" style="display:none">Delete</button>
+      <button class="btn-primary" onclick="saveTask()">Save task</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ METRIC EDIT MODAL ══════════════════════════════ -->
+<div class="modal-overlay" id="metric-modal">
+  <div class="modal">
+    <h3 id="mmetric-title">Update metric</h3>
+    <div class="field"><label>Current value</label><input type="number" id="m-current" min="0"></div>
+    <div class="field"><label>Target</label><input type="number" id="m-target" min="0"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeMetricModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveMetric()">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOP BAR ═════════════════════════════════════════ -->
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+    </div>
+    <div>
+      <div class="brand-name">JollyExplorers</div>
+      <div class="brand-sub">Growth Squad — Scrum OS</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="sync-status"><div class="status-dot" id="sync-dot"></div><span id="sync-label">Not connected</span></div>
+    <span id="sprint-pill" class="sprint-pill">Sprint</span>
+    <button class="sync-btn" onclick="loadAllData()">↻ Sync</button>
+    <button class="admin-btn" id="admin-toggle-btn" onclick="toggleAdmin()">Admin</button>
+    <span class="settings-link" onclick="showSection('settings')">⚙</span>
+  </div>
+</div>
+
+<div class="admin-bar" id="admin-bar">🔒 Admin Mode — You can edit metrics, tasks, and sprint data</div>
+
+<!-- ══ MAIN ════════════════════════════════════════════ -->
+<div class="container">
+
+  <!-- METRICS STRIP -->
+  <div class="metrics" id="metrics-strip">
+    <!-- rendered by JS -->
+  </div>
+
+  <!-- NAV -->
+  <div class="nav">
+    <button class="nav-btn active" onclick="showSection('daily')">Daily Board</button>
+    <button class="nav-btn" onclick="showSection('kanban')">Task Board</button>
+    <button class="nav-btn" onclick="showSection('team')">Team</button>
+    <button class="nav-btn" onclick="showSection('funnel')">Funnel</button>
+    <button class="nav-btn" onclick="showSection('standup')">Daily Standup</button>
+    <button class="nav-btn" onclick="showSection('settings')" id="settings-nav" style="display:none">Settings</button>
+  </div>
+
+  <!-- ─ DAILY BOARD ───────────────────────────────────── -->
+  <div id="daily" class="section active">
+    <div class="sprint-card" id="sprint-progress-card">
+      <div class="sprint-header">
+        <span class="sprint-title" id="sprint-name-label">Sprint</span>
+        <span class="sprint-days" id="sprint-day-label">Day — of 7</span>
+      </div>
+      <div class="sprint-track"><div class="sprint-fill" id="sprint-fill-bar" style="width:0%"></div></div>
+      <div class="sprint-kpis" id="sprint-kpis"><!-- rendered by JS --></div>
+    </div>
+
+    <div class="day-tabs">
+      <div class="day-tab active" data-day="mon" onclick="showDay('mon',this)">Mon — Prospect</div>
+      <div class="day-tab" data-day="tue" onclick="showDay('tue',this)">Tue — Funnel</div>
+      <div class="day-tab" data-day="wed" onclick="showDay('wed',this)">Wed — Convert</div>
+      <div class="day-tab" data-day="thu" onclick="showDay('thu',this)">Thu — Nurture</div>
+      <div class="day-tab" data-day="fri" onclick="showDay('fri',this)">Fri — Close</div>
+      <div class="day-tab" data-day="sat" onclick="showDay('sat',this)">Sat/Sun — Deliver</div>
+    </div>
+
+    <!-- Day panels — rendered dynamically from Google Sheet Activities tab -->
+    <div id="day-panels-container"></div>
+  </div>
+
+  <!-- ─ TASK BOARD ─────────────────────────────────────── -->
+  <div id="kanban" class="section">
+    <div class="kanban" id="kanban-board"><!-- rendered by JS --></div>
+  </div>
+
+  <!-- ─ TEAM ──────────────────────────────────────────── -->
+  <div id="team" class="section">
+    <div class="team-grid" id="team-grid-container"><!-- rendered by JS --></div>
+    <div class="mission-card">
+      <p>Every team member is a <strong>Growth Engineer</strong> — not event staff. Our daily mission is to systematically grow the community flywheel.</p>
+      <div class="pill-flow">
+        <span class="step-pill" style="background:var(--amber-l);color:var(--amber-d)">Penetrate</span>
+        <span class="arrow-sep">→</span>
+        <span class="step-pill" style="background:var(--teal-l);color:var(--teal-d)">Engage</span>
+        <span class="arrow-sep">→</span>
+        <span class="step-pill" style="background:var(--coral-l);color:var(--coral-d)">Convert</span>
+        <span class="arrow-sep">→</span>
+        <span class="step-pill" style="background:var(--purple-l);color:var(--purple-d)">Retain</span>
+        <span class="arrow-sep">→</span>
+        <span class="step-pill" style="background:var(--red-l);color:var(--red-d)">Incubate</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─ FUNNEL ─────────────────────────────────────────── -->
+  <div id="funnel" class="section">
+    <div class="funnel-card">
+      <div style="font-size:13px;font-weight:600;margin-bottom:16px;color:var(--muted)">Acquisition funnel — current sprint</div>
+      <div id="funnel-bars"><!-- rendered by JS --></div>
+    </div>
+    <div class="conv-grid" id="conv-grid"><!-- rendered by JS --></div>
+  </div>
+
+  <!-- ─ STANDUP ────────────────────────────────────────── -->
+  <div id="standup" class="section">
+    <div class="standup-form">
+      <h3>Daily standup log — 15 min check-in</h3>
+      <div class="form-row-3">
+        <div><label class="s-label">Team member</label>
+          <select class="s-input" id="s-member">
+            <option>Employee A – Community Acquisition</option>
+            <option>Employee B – WhatsApp Funnel</option>
+            <option>Employee C – Demo Trainer</option>
+            <option>Employee D – Operations</option>
+            <option>Lead / Growth Manager</option>
+          </select>
+        </div>
+        <div><label class="s-label">Day</label>
+          <select class="s-input" id="s-day">
+            <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+            <option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+          </select>
+        </div>
+        <div><label class="s-label">Leads added today</label>
+          <select class="s-input" id="s-leads">
+            <option>0</option><option>1–5</option><option>6–10</option><option>11–20</option><option>20+</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div><label class="s-label">Yesterday completed</label><textarea class="s-textarea" id="s-done" placeholder="e.g. Entered Prestige community, shared QR with 30 parents..."></textarea></div>
+        <div><label class="s-label">Today's plan</label><textarea class="s-textarea" id="s-plan" placeholder="e.g. Conduct demo at MyHome, follow up on 5 pending payments..."></textarea></div>
+      </div>
+      <div class="form-row-2">
+        <div><label class="s-label">Blockers</label><textarea class="s-textarea" id="s-block" placeholder="e.g. FM not available, trainer unavailable Sunday..."></textarea></div>
+        <div><label class="s-label">Numbers update</label><textarea class="s-textarea" id="s-nums" placeholder="e.g. 8 paid bookings confirmed, 2 communities entered..."></textarea></div>
+      </div>
+      <button class="submit-btn" onclick="logStandup()" id="standup-btn">Submit standup entry →</button>
+    </div>
+    <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--muted)">All standup entries</div>
+    <div class="log-list" id="standup-log"></div>
+  </div>
+
+  <!-- ─ SETTINGS ────────────────────────────────────────── -->
+  <div id="settings" class="section">
+    <div class="settings-card">
+      <h3>Connection settings</h3>
+      <div class="settings-row"><label>Apps Script URL</label><input id="cfg-url-edit" type="text" placeholder="https://script.google.com/macros/s/..."></div>
+      <div class="settings-row"><label>Admin password</label><input id="cfg-pw-edit" type="password" placeholder="Change password"></div>
+      <div class="settings-row"><label>Sprint name</label><input id="cfg-sprint-edit" type="text" placeholder="Sprint W12 · Mar 16–22, 2026"></div>
+      <div class="settings-row"><label>Sprint day number</label><input id="cfg-day-edit" type="number" min="1" max="7" placeholder="e.g. 4"></div>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <button class="save-settings" onclick="saveSettings()">Save settings</button>
+        <button class="danger-btn" onclick="resetSetup()">Reset & reconfigure</button>
+      </div>
+    </div>
+    <div class="settings-card">
+      <h3>Sprint metric targets (admin only)</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Edit targets directly in the Metrics tab of your Google Sheet, then click ↻ Sync to refresh.</p>
+      <button class="save-settings" onclick="loadAllData()">↻ Sync from Google Sheet</button>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+let CFG = {};
+let STATE = { tasks:[], standups:[], metrics:[], sprint:{}, activities:[], team:[] };
+let isAdmin = false;
+let editingTaskId = null;
+let editingMetricKey = null;
+
+const METRIC_LABELS = {
+  communities_entered: 'Communities targeted',
+  whatsapp_leads: 'WhatsApp leads',
+  demo_workshops: 'Demo workshops',
+  paid_conversions: 'Paid conversions',
+  repeat_enrollments: 'Repeat enrollments'
+};
+const METRIC_COLORS = ['m-amber','m-teal','m-coral','m-purple','m-red'];
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  CFG = loadConfig();
+  if (!CFG.url) {
+    document.getElementById('setup-overlay').classList.remove('hidden');
+  } else {
+    document.getElementById('setup-overlay').classList.add('hidden');
+    populateSettingsForm();
+    loadAllData();
+  }
+});
+
+function loadConfig() {
+  try { return JSON.parse(localStorage.getItem('je_config') || '{}'); }
+  catch(e) { return {}; }
+}
+
+function saveConfig(cfg) {
+  CFG = cfg;
+  localStorage.setItem('je_config', JSON.stringify(cfg));
+}
+
+// ══════════════════════════════════════════════════════
+//  SETUP
+// ══════════════════════════════════════════════════════
+function saveSetup() {
+  const url = document.getElementById('cfg-url').value.trim();
+  const pw  = document.getElementById('cfg-password').value.trim();
+  const sp  = document.getElementById('cfg-sprint').value.trim() || 'Sprint W12';
+  const err = document.getElementById('setup-err');
+
+  if (!url || !pw || !url.startsWith('https://script.google.com')) {
+    err.style.display = 'block'; return;
+  }
+  err.style.display = 'none';
+
+  saveConfig({ url, pwHash: simpleHash(pw), sprintName: sp });
+
+  setSyncStatus('loading','Connecting to Google Sheet...');
+  apiInit().then(() => {
+    document.getElementById('setup-overlay').classList.add('hidden');
+    toast('Connected! Loading data...','success');
+    populateSettingsForm();
+    loadAllData();
+  }).catch(e => {
+    err.textContent = '⚠️ Could not reach Apps Script. Make sure URL ends with /exec and access is set to Anyone.';
+    err.style.display = 'block';
+    setSyncStatus('err','Connection failed');
+  });
+}
+
+function copyScript() {
+  const text = document.getElementById('apps-script-code').textContent;
+  navigator.clipboard.writeText(text).then(() => toast('Script copied!','success'));
+}
+
+// ══════════════════════════════════════════════════════
+//  API
+// ══════════════════════════════════════════════════════
+async function apiGet(sheet, extraParams) {
+  let url = `${CFG.url}?sheet=${encodeURIComponent(sheet)}`;
+  if (extraParams) url += '&' + new URLSearchParams(extraParams).toString();
+  const r = await fetch(url);
+  const d = await r.json();
+  if (d.error) throw new Error(d.error);
+  return d.data || [];
+}
+
+// POST uses no-cors (avoids CORS preflight from local file://).
+// With no-cors the response is opaque — we cannot read it.
+// All writes are fire-and-forget; we re-fetch after to confirm state.
+async function apiPost(payload) {
+  await fetch(CFG.url, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  });
+  return { success: true };
+}
+
+// Init sheets via GET so setup works without needing to read a POST response
+async function apiInit() {
+  const url = `${CFG.url}?action=init`;
+  const r = await fetch(url);
+  const d = await r.json();
+  if (d.error) throw new Error(d.error);
+  return d;
+}
+
+function setSyncStatus(state, label) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  dot.className = 'status-dot ' + state;
+  lbl.textContent = label;
+}
+
+// ══════════════════════════════════════════════════════
+//  LOAD ALL DATA
+// ══════════════════════════════════════════════════════
+async function loadAllData() {
+  if (!CFG.url) return;
+  setSyncStatus('loading','Syncing...');
+  try {
+    const [metricsRaw, tasksRaw, standupsRaw, sprintRaw, activitiesRaw, teamRaw] = await Promise.all([
+      apiGet('Metrics'), apiGet('Tasks'), apiGet('Standups'), apiGet('Sprint'),
+      apiGet('Activities'), apiGet('Team')
+    ]);
+
+    // Parse metrics
+    STATE.metrics = metricsRaw.slice(1).map(r => ({
+      key: r[0], target: Number(r[1])||0, current: Number(r[2])||0,
+      unit: r[3], color: r[4]||'amber'
+    }));
+
+    // Parse tasks
+    STATE.tasks = tasksRaw.slice(1).filter(r=>r[0]).map(r => ({
+      id:r[0], title:r[1], owner:r[2], status:r[3], date:r[4], notes:r[5]||''
+    }));
+
+    // Parse standups
+    STATE.standups = standupsRaw.slice(1).filter(r=>r[0]).map(r => ({
+      id:r[0], member:r[1], day:r[2], done:r[3], plan:r[4], blockers:r[5], numbers:r[6], ts:r[7]
+    })).reverse();
+
+    // Parse sprint
+    STATE.sprint = {};
+    sprintRaw.slice(1).forEach(r => { if(r[0]) STATE.sprint[r[0]] = r[1]; });
+
+    // Parse activities
+    STATE.activities = activitiesRaw.slice(1).filter(r=>r[0]).map(r => ({
+      day:r[0], type:r[1], text:r[2], tagColor:r[3]||''
+    }));
+
+    // Parse team
+    STATE.team = teamRaw.slice(1).filter(r=>r[0]).map(r => ({
+      initials:r[0], name:r[1], role:r[2], color:r[3]||'amber', metricKey:r[4]||''
+    }));
+
+    renderAll();
+    setSyncStatus('ok', 'Synced ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
+  } catch(e) {
+    console.error(e);
+    setSyncStatus('err','Sync failed');
+    toast('Sync failed: ' + e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER ALL
+// ══════════════════════════════════════════════════════
+function renderAll() {
+  renderMetrics();
+  renderSprintProgress();
+  renderDailyBoard();
+  renderKanban();
+  renderTeam();
+  renderStandupLog();
+  renderFunnel();
+  updateSprintPill();
+}
+
+// ── SPRINT PILL ──────────────────────────────────────
+function updateSprintPill() {
+  const name = STATE.sprint.sprint_name || CFG.sprintName || 'Sprint';
+  document.getElementById('sprint-pill').textContent = name;
+  document.getElementById('sprint-name-label').textContent = name;
+}
+
+// ── METRICS ──────────────────────────────────────────
+function renderMetrics() {
+  const strip = document.getElementById('metrics-strip');
+  if (!STATE.metrics.length) { strip.innerHTML = '<div style="color:var(--muted);font-size:12px">No metrics data yet — sync from your Google Sheet.</div>'; return; }
+
+  strip.innerHTML = STATE.metrics.map((m,i) => {
+    const pct = m.target > 0 ? Math.min(100, Math.round(m.current / m.target * 100)) : 0;
+    const cls = METRIC_COLORS[i] || 'm-amber';
+    const label = METRIC_LABELS[m.key] || m.key;
+    return `<div class="metric ${cls}">
+      <div class="metric-label">${label} <button class="edit-metric-btn" onclick="openMetricModal('${m.key}')">✏️</button></div>
+      <div class="metric-nums">
+        <span class="metric-cur">${m.current}</span>
+        <span class="metric-target">/ ${m.target}</span>
+      </div>
+      <div class="metric-bar"><div class="metric-fill" style="width:${pct}%"></div></div>
+      <div class="metric-pct">${pct}% of target</div>
+    </div>`;
+  }).join('');
+}
+
+// ── SPRINT PROGRESS ───────────────────────────────────
+function renderSprintProgress() {
+  const day = Number(STATE.sprint.day_number) || Number(CFG.sprintDay) || 1;
+  const total = Number(STATE.sprint.total_days) || 7;
+  const pct = Math.round(day / total * 100);
+
+  document.getElementById('sprint-fill-bar').style.width = pct + '%';
+  document.getElementById('sprint-day-label').textContent = `Day ${day} of ${total}`;
+
+  if (!STATE.metrics.length) return;
+  const kpis = document.getElementById('sprint-kpis');
+  kpis.innerHTML = STATE.metrics.slice(0,4).map(m => {
+    const p = m.target > 0 ? Math.round(m.current/m.target*100) : 0;
+    const cls = p >= 100 ? 'kpi-hit' : p >= 50 ? 'kpi-partial' : 'kpi-miss';
+    return `<div class="kpi-item"><div class="kpi-val ${cls}">${m.current} / ${m.target}</div><div class="kpi-label">${METRIC_LABELS[m.key]||m.key}</div></div>`;
+  }).join('');
+}
+
+// ── KANBAN ────────────────────────────────────────────
+function renderKanban() {
+  const cols = [
+    {id:'done',    label:'Completed', cls:'done'},
+    {id:'pending', label:'Pending',   cls:'pending'},
+    {id:'upcoming',label:'Upcoming',  cls:'upcoming'},
+    {id:'blocked', label:'Blockers',  cls:'blocked'}
+  ];
+
+  const board = document.getElementById('kanban-board');
+  board.innerHTML = cols.map(col => {
+    const items = STATE.tasks.filter(t => t.status === col.id);
+    const cards = items.map(t => {
+      const blockedClass = col.id === 'blocked' ? 'blocked-bar' : '';
+      const editBtn = isAdmin ? `<span onclick="openTaskModal('${t.id}')" style="float:right;cursor:pointer;font-size:10px;color:var(--muted)">✏️</span>` : '';
+      return `<div class="kb-item ${blockedClass}">
+        ${editBtn}
+        <div class="kb-item-title">${escHtml(t.title)}</div>
+        <div class="kb-item-owner">${escHtml(t.owner)} <span class="kb-item-date">${t.date||''}</span></div>
+      </div>`;
+    }).join('');
+
+    return `<div class="kb-col ${col.cls}">
+      <div class="kb-header">
+        <span class="kb-title">${col.label}</span>
+        <span class="kb-count">${items.length} task${items.length!==1?'s':''}</span>
+      </div>
+      ${cards}
+      <div class="kb-add" onclick="openNewTaskModal('${col.id}')">+ Add task</div>
+    </div>`;
+  }).join('');
+}
+
+// ── STANDUP LOG ───────────────────────────────────────
+function renderStandupLog() {
+  const log = document.getElementById('standup-log');
+  if (!STATE.standups.length) {
+    log.innerHTML = '<div class="log-empty">No standup entries yet. Be the first to log today\'s update!</div>';
+    return;
+  }
+  log.innerHTML = STATE.standups.map(s => `
+    <div class="log-entry">
+      <div class="log-meta">
+        <span class="log-name">${escHtml(s.member)}</span>
+        <span class="log-time">${escHtml(s.day)} · ${escHtml(String(s.ts||''))}</span>
+      </div>
+      <div class="log-body">
+        ${s.done ? `<b>Done:</b> ${escHtml(s.done)}<br>` : ''}
+        ${s.plan ? `<b>Plan:</b> ${escHtml(s.plan)}<br>` : ''}
+        ${s.blockers ? `<b>Blockers:</b> ${escHtml(s.blockers)}<br>` : ''}
+        ${s.numbers ? `<b>Numbers:</b> ${escHtml(s.numbers)}` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── DAILY BOARD ───────────────────────────────────────
+const DAY_META = {
+  mon: { label:'Monday activities', subtitle:'community prospecting', dotColor:'amber', outLabel:'Monday target outputs', outDot:'teal' },
+  tue: { label:'Tuesday activities', subtitle:'funnel building',       dotColor:'teal',  outLabel:'Tuesday target outputs', outDot:'amber' },
+  wed: { label:'Wednesday activities', subtitle:'demo conversion',     dotColor:'coral', outLabel:'Wednesday target outputs', outDot:'teal' },
+  thu: { label:'Thursday activities', subtitle:'nurture & remind',     dotColor:'purple',outLabel:'Thursday target outputs', outDot:'amber' },
+  fri: { label:'Friday activities', subtitle:'final push',             dotColor:'amber', outLabel:'Friday target outputs', outDot:'teal' },
+  sat: { label:'Sat / Sun activities', subtitle:'core product delivery',dotColor:'teal', outLabel:'Weekend target outputs', outDot:'coral' }
+};
+
+function renderDailyBoard() {
+  const container = document.getElementById('day-panels-container');
+  if (!container) return;
+  const days = ['mon','tue','wed','thu','fri','sat'];
+
+  if (!STATE.activities.length) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:16px 0">Loading activities from Google Sheet...</div>';
+    return;
+  }
+
+  container.innerHTML = days.map((day, i) => {
+    const meta = DAY_META[day];
+    const acts = STATE.activities.filter(a => a.day === day && a.type === 'activity');
+    const outs = STATE.activities.filter(a => a.day === day && a.type === 'output');
+    const tags = outs.filter(o => o.tagColor).map(o =>
+      `<span class="tag ${o.tagColor}">${escHtml(o.text.split('—')[0].split('(')[0].trim().substring(0,18))}</span>`
+    ).join('');
+
+    return `<div id="day-${day}" class="day-grid" style="display:${i===0?'grid':'none'}">
+      <div class="day-card">
+        <h3><div class="dot ${meta.dotColor}"></div>${meta.label} — ${meta.subtitle}</h3>
+        <div class="act-list">
+          ${acts.map(a=>`<div class="act-item"><span class="act-tick">→</span>${escHtml(a.text)}</div>`).join('')}
+          ${acts.length===0?'<div class="act-item" style="color:var(--muted);font-style:italic">No activities yet — add rows to the Activities tab in your Google Sheet.</div>':''}
+        </div>
+      </div>
+      <div class="day-card">
+        <h3><div class="dot ${meta.outDot}"></div>${meta.outLabel}</h3>
+        <div class="act-list">
+          ${outs.map(o=>`<div class="act-item"><span class="act-tick">✓</span>${escHtml(o.text)}</div>`).join('')}
+          ${outs.length===0?'<div class="act-item" style="color:var(--muted);font-style:italic">No outputs yet.</div>':''}
+        </div>
+        ${tags ? `<div style="margin-top:10px">${tags}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // restore active day tab selection
+  const activeTab = document.querySelector('.day-tab.active');
+  if (activeTab) {
+    const day = activeTab.getAttribute('data-day');
+    if (day) showDay(day, activeTab);
+  }
+}
+
+// ── TEAM ─────────────────────────────────────────────
+function renderTeam() {
+  const grid = document.getElementById('team-grid-container');
+  if (!grid) return;
+  const m = {};
+  STATE.metrics.forEach(x => { m[x.key] = x.current; });
+
+  if (!STATE.team.length) {
+    grid.innerHTML = '<div style="color:var(--muted);font-size:12px">No team data yet.</div>';
+    return;
+  }
+
+  grid.innerHTML = STATE.team.map(t => {
+    const statVal = t.metricKey && m[t.metricKey] !== undefined
+      ? `${m[t.metricKey]} ${t.metricKey.replace(/_/g,' ')}`
+      : t.metricKey || 'Strategy + closing';
+    return `<div class="team-card">
+      <div class="avatar av-${t.color}">${escHtml(t.initials)}</div>
+      <div class="tc-name">${escHtml(t.name)}</div>
+      <div class="tc-role">${escHtml(t.role)}</div>
+      <div class="tc-stat">${statVal}</div>
+    </div>`;
+  }).join('');
+
+  // Update standup dropdown dynamically
+  const sel = document.getElementById('s-member');
+  if (sel) {
+    sel.innerHTML = STATE.team.map(t =>
+      `<option>${escHtml(t.name)} – ${escHtml(t.role)}</option>`
+    ).join('');
+  }
+}
+
+// ── FUNNEL ────────────────────────────────────────────
+function renderFunnel() {
+  if (!STATE.metrics.length) return;
+  const max = Math.max(...STATE.metrics.map(m => m.current), 1);
+  const first = STATE.metrics[0].current || 1;
+  const COLORS = ['#BA7517','#1D9E75','#D85A30','#7F77DD','#E24B4A','#C06E0A','#3B8BD4','#639922'];
+
+  document.getElementById('funnel-bars').innerHTML = STATE.metrics.map((m, i) => {
+    const pct  = Math.round(m.current / max * 100);
+    const ratio = Math.round(m.current / first * 100);
+    const label = METRIC_LABELS[m.key] || m.key.replace(/_/g,' ');
+    const color = COLORS[i % COLORS.length];
+    return `<div class="funnel-row">
+      <div class="funnel-label">${label}</div>
+      <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:${Math.max(pct,2)}%;background:${color}">${m.current > 0 ? m.current : ''}</div></div>
+      <div class="funnel-val">${m.current}</div>
+      <div class="funnel-pct">${ratio}%</div>
+    </div>`;
+  }).join('');
+
+  // Conversion cards — based on first 3 metrics that have data
+  const vals = {};
+  STATE.metrics.forEach(x => { vals[x.key] = x; });
+  const comm  = (vals.communities_entered||{}).current || 0;
+  const leads = (vals.whatsapp_leads||{}).current || 0;
+  const paid  = (vals.paid_conversions||{}).current || 0;
+  const demo  = Math.round(leads * 0.55);
+  const d2p   = demo > 0 ? Math.round(paid/demo*100) : 0;
+  const w2d   = leads > 0 ? Math.round(demo/leads*100) : 0;
+  const rpc   = comm > 0 ? Math.round(paid/comm) : 0;
+
+  document.getElementById('conv-grid').innerHTML = `
+    <div class="conv-card teal"><div class="conv-title">Demo → Paid conversion</div><div class="conv-val">${d2p}%</div><div class="conv-sub">${paid} of ${demo} converted</div></div>
+    <div class="conv-card amber"><div class="conv-title">WhatsApp → Demo rate</div><div class="conv-val">${w2d}%</div><div class="conv-sub">${demo} of ${leads} attended</div></div>
+    <div class="conv-card purple"><div class="conv-title">Avg paid / community</div><div class="conv-val">${rpc}x</div><div class="conv-sub">${paid} paid, ${comm} communities</div></div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════
+//  ADMIN MODE
+// ══════════════════════════════════════════════════════
+function toggleAdmin() {
+  if (!isAdmin) {
+    const pw = prompt('Enter admin password:');
+    if (!pw || simpleHash(pw) !== CFG.pwHash) { toast('Wrong password','error'); return; }
+    isAdmin = true;
+    document.getElementById('admin-toggle-btn').classList.add('active');
+    document.getElementById('admin-toggle-btn').textContent = 'Exit Admin';
+    document.getElementById('admin-bar').classList.add('show');
+    document.getElementById('settings-nav').style.display = '';
+    document.body.classList.add('admin-mode');
+    toast('Admin mode activated','success');
+  } else {
+    isAdmin = false;
+    document.getElementById('admin-toggle-btn').classList.remove('active');
+    document.getElementById('admin-toggle-btn').textContent = 'Admin';
+    document.getElementById('admin-bar').classList.remove('show');
+    document.getElementById('settings-nav').style.display = 'none';
+    document.body.classList.remove('admin-mode');
+    renderKanban();
+    renderMetrics();
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  TASK MODAL
+// ══════════════════════════════════════════════════════
+function openNewTaskModal(status) {
+  if (!isAdmin) return;
+  editingTaskId = null;
+  document.getElementById('modal-title').textContent = 'Add new task';
+  document.getElementById('t-title').value = '';
+  document.getElementById('t-owner').value = document.getElementById('t-owner').options[0].value;
+  document.getElementById('t-status').value = status;
+  document.getElementById('t-notes').value = '';
+  document.getElementById('modal-delete').style.display = 'none';
+  document.getElementById('task-modal').classList.add('open');
+}
+
+function openTaskModal(id) {
+  if (!isAdmin) return;
+  const task = STATE.tasks.find(t => String(t.id) === String(id));
+  if (!task) return;
+  editingTaskId = id;
+  document.getElementById('modal-title').textContent = 'Edit task';
+  document.getElementById('t-title').value = task.title;
+  document.getElementById('t-owner').value = task.owner;
+  document.getElementById('t-status').value = task.status;
+  document.getElementById('t-notes').value = task.notes||'';
+  document.getElementById('modal-delete').style.display = 'inline-block';
+  document.getElementById('task-modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('task-modal').classList.remove('open'); }
+
+async function saveTask() {
+  const title  = document.getElementById('t-title').value.trim();
+  const owner  = document.getElementById('t-owner').value;
+  const status = document.getElementById('t-status').value;
+  const notes  = document.getElementById('t-notes').value.trim();
+  if (!title) { toast('Please enter a task title','error'); return; }
+
+  const today = new Date().toLocaleDateString('en-IN');
+
+  if (editingTaskId) {
+    // Update existing — find row index
+    const idx = STATE.tasks.findIndex(t => String(t.id) === String(editingTaskId));
+    if (idx >= 0) {
+      // update in sheet (row = idx+2 because header row + 1-indexed)
+      await apiPost({ sheet:'Tasks', action:'update_cell', row: idx+2, col:2, value: title });
+      await apiPost({ sheet:'Tasks', action:'update_cell', row: idx+2, col:3, value: owner });
+      await apiPost({ sheet:'Tasks', action:'update_cell', row: idx+2, col:4, value: status });
+      await apiPost({ sheet:'Tasks', action:'update_cell', row: idx+2, col:6, value: notes });
+    }
+  } else {
+    const id = 'T' + Date.now();
+    await apiPost({ sheet:'Tasks', action:'append', row:[id, title, owner, status, today, notes] });
+  }
+  closeModal();
+  toast('Task saved','success');
+  await loadAllData();
+}
+
+async function deleteTask() {
+  if (!editingTaskId || !confirm('Delete this task?')) return;
+  await apiPost({ sheet:'Tasks', action:'delete_row', id: editingTaskId });
+  closeModal();
+  toast('Task deleted');
+  await loadAllData();
+}
+
+// ══════════════════════════════════════════════════════
+//  METRIC MODAL
+// ══════════════════════════════════════════════════════
+function openMetricModal(key) {
+  if (!isAdmin) return;
+  editingMetricKey = key;
+  const m = STATE.metrics.find(x => x.key === key);
+  document.getElementById('mmetric-title').textContent = 'Update: ' + (METRIC_LABELS[key]||key);
+  document.getElementById('m-current').value = m ? m.current : 0;
+  document.getElementById('m-target').value  = m ? m.target  : 0;
+  document.getElementById('metric-modal').classList.add('open');
+}
+
+function closeMetricModal() { document.getElementById('metric-modal').classList.remove('open'); }
+
+async function saveMetric() {
+  const cur = Number(document.getElementById('m-current').value);
+  const tgt = Number(document.getElementById('m-target').value);
+  const idx = STATE.metrics.findIndex(m => m.key === editingMetricKey);
+  if (idx < 0) { toast('Metric not found','error'); return; }
+  await apiPost({ sheet:'Metrics', action:'update_cell', row: idx+2, col:2, value: tgt });
+  await apiPost({ sheet:'Metrics', action:'update_cell', row: idx+2, col:3, value: cur });
+  closeMetricModal();
+  toast('Metric updated','success');
+  await loadAllData();
+}
+
+// ══════════════════════════════════════════════════════
+//  STANDUP LOG
+// ══════════════════════════════════════════════════════
+async function logStandup() {
+  const member   = document.getElementById('s-member').value;
+  const day      = document.getElementById('s-day').value;
+  const done     = document.getElementById('s-done').value.trim();
+  const plan     = document.getElementById('s-plan').value.trim();
+  const blockers = document.getElementById('s-block').value.trim();
+  const numbers  = document.getElementById('s-nums').value.trim();
+
+  if (!done && !plan) { toast('Please fill in at least Done and Plan fields','error'); return; }
+
+  const btn = document.getElementById('standup-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  const id = 'S' + Date.now();
+  const ts = new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+
+  try {
+    await apiPost({ sheet:'Standups', action:'append', row:[id, member, day, done, plan, blockers, numbers, ts] });
+    ['s-done','s-plan','s-block','s-nums'].forEach(id => document.getElementById(id).value = '');
+    toast('Standup logged!','success');
+    await loadAllData();
+  } catch(e) {
+    toast('Failed to save: ' + e.message,'error');
+  }
+  btn.disabled = false; btn.textContent = 'Submit standup entry →';
+}
+
+// ══════════════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════════════
+function populateSettingsForm() {
+  document.getElementById('cfg-url-edit').value    = CFG.url    || '';
+  document.getElementById('cfg-sprint-edit').value = CFG.sprintName || '';
+  document.getElementById('cfg-day-edit').value    = CFG.sprintDay || 1;
+}
+
+function saveSettings() {
+  if (!isAdmin) { toast('Enter admin mode to change settings','error'); return; }
+  const url  = document.getElementById('cfg-url-edit').value.trim();
+  const sprint = document.getElementById('cfg-sprint-edit').value.trim();
+  const day  = document.getElementById('cfg-day-edit').value;
+  const pwInput = document.getElementById('cfg-pw-edit').value.trim();
+
+  const updated = { ...CFG, url, sprintName: sprint, sprintDay: day };
+  if (pwInput) updated.pwHash = simpleHash(pwInput);
+  saveConfig(updated);
+  toast('Settings saved','success');
+  loadAllData();
+}
+
+function resetSetup() {
+  if (!confirm('This will clear all local config. You will need to reconfigure. Continue?')) return;
+  localStorage.removeItem('je_config');
+  location.reload();
+}
+
+// ══════════════════════════════════════════════════════
+//  UI HELPERS
+// ══════════════════════════════════════════════════════
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach((b,i) => {
+    const ids = ['daily','kanban','team','funnel','standup','settings'];
+    b.classList.toggle('active', ids[i] === id);
+  });
+}
+
+function showDay(d, el) {
+  document.querySelectorAll('.day-grid').forEach(p => p.style.display = 'none');
+  const panel = document.getElementById('day-' + d);
+  if (panel) panel.style.display = 'grid';
+  document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = ''; }, 3000);
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return String(hash);
+}
+</script>
+</body>
+</html>
