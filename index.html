@@ -614,9 +614,14 @@ function getWeek(d) {
       </div>
     </div>
     <div class="settings-card">
-      <h3>Sprint metric targets (admin only)</h3>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Edit targets directly in the Metrics tab of your Google Sheet, then click ↻ Sync to refresh.</p>
-      <button class="save-settings" onclick="loadAllData()">↻ Sync from Google Sheet</button>
+      <h3>Deploy to GitHub / Netlify</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">To share with your team without showing the setup screen, bake your config into the HTML file. Copy these two values and paste them into the <code>BAKED_CONFIG</code> block at the top of the HTML script section.</p>
+      <div class="settings-row"><label>Your Apps Script URL</label><input id="deploy-url" readonly style="font-size:11px;background:var(--bg)"></div>
+      <div class="settings-row"><label>Your password hash</label><input id="deploy-hash" readonly style="font-size:11px;background:var(--bg)"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="save-settings" onclick="copyDeployInfo()" style="font-size:12px">Copy both values</button>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px">Then in the HTML file find <code>const BAKED_CONFIG</code> and paste the url and pwHash values. Re-upload to GitHub/Netlify — team members open the link and go straight to the dashboard.</p>
     </div>
   </div>
 
@@ -646,6 +651,15 @@ const METRIC_COLORS = ['m-amber','m-teal','m-coral','m-purple','m-red'];
 // ══════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════
+//  BAKED-IN CONFIG — set these before uploading to GitHub
+//  Team members will never see the setup screen
+// ══════════════════════════════════════════════════════
+const BAKED_CONFIG = {
+  url: 'https://script.google.com/macros/s/AKfycbxR3oirehsew0smmqi3BDSBZvSR_igw2ixoln-6I7ya0-klvHV2W6ruDSU3FqzqBZ2o/exec',
+  pwHash: '-1467469226',
+  sprintName: 'Sprint W12'
+};
+
 window.addEventListener('DOMContentLoaded', () => {
   CFG = loadConfig();
   if (!CFG.url) {
@@ -658,8 +672,14 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadConfig() {
-  try { return JSON.parse(localStorage.getItem('je_config') || '{}'); }
-  catch(e) { return {}; }
+  // Priority: localStorage (admin changes) → baked config → empty
+  try {
+    const stored = JSON.parse(localStorage.getItem('je_config') || '{}');
+    if (stored.url) return stored;
+    if (BAKED_CONFIG.url) return BAKED_CONFIG;
+    return {};
+  }
+  catch(e) { return BAKED_CONFIG.url ? BAKED_CONFIG : {}; }
 }
 
 function saveConfig(cfg) {
@@ -1192,6 +1212,19 @@ function populateSettingsForm() {
   document.getElementById('cfg-url-edit').value    = CFG.url    || '';
   document.getElementById('cfg-sprint-edit').value = CFG.sprintName || '';
   document.getElementById('cfg-day-edit').value    = CFG.sprintDay || 1;
+  // populate deploy helper fields
+  const du = document.getElementById('deploy-url');
+  const dh = document.getElementById('deploy-hash');
+  if (du) du.value = CFG.url || '';
+  if (dh) dh.value = CFG.pwHash || '';
+}
+
+function copyDeployInfo() {
+  const url  = CFG.url || '';
+  const hash = CFG.pwHash || '';
+  const sprint = CFG.sprintName || '';
+  const text = `BAKED_CONFIG values — paste into the HTML file:\n\nurl: '${url}'\npwHash: '${hash}'\nsprintName: '${sprint}'`;
+  navigator.clipboard.writeText(text).then(() => toast('Config copied — paste into BAKED_CONFIG in the HTML file', 'success'));
 }
 
 function saveSettings() {
