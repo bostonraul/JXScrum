@@ -440,6 +440,7 @@ function setupSheets(ss) {
     cm.appendRow(['C004','Aparna Tulip','Get more people into WhatsApp group, Introduce JX Calendar','4pm-6pm','Class','Public Speaking Class','Digvijay,Krishna,Akshat','Digvijay: Conduct Workshop | Krishna/Akshat: Arrangements + Photos & Videos','2026-03-21','blocked']);
     cm.appendRow(['C005','Poulomi Avante Kokapet','Enroll 70+ in WhatsApp group, Promote Summer Camp, Introduce JX Calendar','12pm-10pm','Demo+Mass','Robotics Rs199, VR (3 mins) Rs99','Krishna,Mitesh,Akshat,Sai','Mitesh: Customer Acquisition | Krishna: Arrangements | Akshat: Photos & Videos | Sai: Music & Beats','2026-03-22','blocked']);
   }
+}
 
 function getWeek(d) {
   const onejan = new Date(d.getFullYear(), 0, 1);
@@ -935,6 +936,44 @@ function updateSprintPill() {
   document.getElementById('sprint-name-label').textContent = name;
 }
 
+// ── DATE HELPERS ──────────────────────────────────────
+function formatDateIST(raw) {
+  if (!raw) return '';
+  try {
+    const d = new Date(raw);
+    if (isNaN(d)) return String(raw);
+    return d.toLocaleDateString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric', month: 'long', year: 'numeric'
+    }); // e.g. "18 March 2026"
+  } catch(e) { return String(raw); }
+}
+
+function formatTimeIST(raw) {
+  if (!raw) return '';
+  try {
+    const d = new Date(raw);
+    if (isNaN(d)) return String(raw);
+    return d.toLocaleTimeString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit', minute: '2-digit', hour12: true
+    }) + ' IST';
+  } catch(e) { return String(raw); }
+}
+
+// Returns true if a community's date falls within the current ISO week (Mon–Sun, IST)
+function isThisWeek(raw) {
+  if (!raw) return false;
+  try {
+    const d   = new Date(raw);
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const day = now.getDay() || 7; // Mon=1 … Sun=7
+    const mon = new Date(now); mon.setDate(now.getDate() - day + 1); mon.setHours(0,0,0,0);
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23,59,59,999);
+    return d >= mon && d <= sun;
+  } catch(e) { return false; }
+}
+
 // ── METRICS ──────────────────────────────────────────
 function renderMetrics() {
   const strip = document.getElementById('metrics-strip');
@@ -1374,20 +1413,33 @@ const STATUS_META = {
 };
 
 function renderCommunities() {
-  const all = STATE.communities;
+  // Sort: inprogress first → current-week planned → other planned → blocked → done
+  const STATUS_ORDER = { inprogress:0, planned:1, blocked:2, done:3 };
+  const all = [...STATE.communities].sort((a,b) => {
+    const sa = STATUS_ORDER[a.status] ?? 2;
+    const sb = STATUS_ORDER[b.status] ?? 2;
+    if (sa !== sb) return sa - sb;
+    // Within same status, current-week first, then by date
+    const aw = isThisWeek(a.date) ? 0 : 1;
+    const bw = isThisWeek(b.date) ? 0 : 1;
+    if (aw !== bw) return aw - bw;
+    return new Date(a.date||0) - new Date(b.date||0);
+  });
+
   const filtered = commFilter === 'all' ? all : all.filter(c => c.status === commFilter);
 
   // Summary strip
   const strip = document.getElementById('comm-summary-strip');
   if (strip) {
-    const total    = all.length;
-    const done     = all.filter(c=>c.status==='done').length;
-    const blocked  = all.filter(c=>c.status==='blocked').length;
-    const planned  = all.filter(c=>c.status==='planned'||c.status==='inprogress').length;
+    const total   = all.length;
+    const done    = all.filter(c=>c.status==='done').length;
+    const blocked = all.filter(c=>c.status==='blocked').length;
+    const active  = all.filter(c=>c.status==='inprogress').length;
+    const thisWk  = all.filter(c=>isThisWeek(c.date)).length;
     strip.innerHTML = `
       <div class="comm-stat"><div class="comm-stat-val" style="color:var(--amber)">${total}</div><div class="comm-stat-label">Total communities</div></div>
+      <div class="comm-stat"><div class="comm-stat-val" style="color:var(--purple)">${thisWk}</div><div class="comm-stat-label">This week</div></div>
       <div class="comm-stat"><div class="comm-stat-val" style="color:var(--teal)">${done}</div><div class="comm-stat-label">Completed</div></div>
-      <div class="comm-stat"><div class="comm-stat-val" style="color:var(--amber)">${planned}</div><div class="comm-stat-label">In pipeline</div></div>
       <div class="comm-stat"><div class="comm-stat-val" style="color:var(--red)">${blocked}</div><div class="comm-stat-label">Blocked</div></div>
     `;
   }
@@ -1396,19 +1448,24 @@ function renderCommunities() {
   if (!list) return;
 
   if (!filtered.length) {
-    list.innerHTML = `<div class="comm-empty">${all.length===0 ? 'No communities yet — add rows to the Communities tab in your Google Sheet, then click ↻ Sync.' : 'No communities match this filter.'}</div>`;
+    list.innerHTML = `<div class="comm-empty">${all.length===0 ? 'No communities yet — add rows to the Communities tab in your Google Sheet, then Sync.' : 'No communities match this filter.'}</div>`;
     return;
   }
 
   list.innerHTML = filtered.map(c => {
-    const sm = STATUS_META[c.status] || STATUS_META.planned;
+    const sm      = STATUS_META[c.status] || STATUS_META.planned;
     const members = (c.members||'').split(',').map(m=>m.trim()).filter(Boolean);
     const editBtn = `<button class="comm-edit-btn" onclick="openCommModal('${c.id}')">✏️ Edit</button>`;
-    return `<div class="comm-card">
+    const dateStr = formatDateIST(c.date);
+    const thisWeekBadge = isThisWeek(c.date)
+      ? `<span style="font-size:10px;font-weight:700;background:var(--teal-l);color:var(--teal-d);padding:3px 8px;border-radius:10px;margin-left:6px">This week</span>`
+      : '';
+
+    return `<div class="comm-card" style="${isThisWeek(c.date) ? 'border-color:var(--teal);border-width:1.5px' : ''}">
       <div class="comm-header">
         <div class="comm-title-block">
-          <div class="comm-name">${escHtml(c.name)}</div>
-          <div class="comm-date">${escHtml(c.date||'')} ${c.timeSlot ? '· '+escHtml(c.timeSlot) : ''}</div>
+          <div class="comm-name">${escHtml(c.name)}${thisWeekBadge}</div>
+          <div class="comm-date">${dateStr ? dateStr + ' IST' : ''}${c.timeSlot ? ' · ' + escHtml(c.timeSlot) : ''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           ${editBtn}
