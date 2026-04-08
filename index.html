@@ -203,7 +203,44 @@ pre.script-box{background:#1e1e1e;color:#d4d4d4;border-radius:10px;padding:14px;
 .log-body b{color:var(--text)}
 .log-empty{font-size:13px;color:var(--muted);text-align:center;padding:24px;background:var(--card);border:1px dashed var(--border);border-radius:10px}
 
-/* ── SETTINGS ────────────────────────────────────────── */
+/* ── COMMUNITY PLAN ──────────────────────────────────── */
+.comm-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.comm-toolbar-left{display:flex;align-items:center;gap:8px}
+.comm-filter{padding:6px 12px;border:1px solid var(--border);border-radius:20px;font-size:12px;background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s;font-weight:500}
+.comm-filter.active{background:var(--amber-l);color:var(--amber-d);border-color:var(--amber);font-weight:600}
+.comm-add-btn{padding:7px 14px;background:var(--amber);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:none}
+.admin-mode .comm-add-btn{display:inline-block}
+.comm-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:12px;transition:box-shadow .15s}
+.comm-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.comm-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:12px}
+.comm-title-block{flex:1}
+.comm-name{font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px}
+.comm-date{font-size:11px;color:var(--muted)}
+.comm-status{flex-shrink:0}
+.status-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px}
+.status-pill.blocked{background:var(--red-l);color:var(--red-d)}
+.status-pill.done{background:var(--teal-l);color:var(--teal-d)}
+.status-pill.inprogress{background:var(--amber-l);color:var(--amber-d)}
+.status-pill.planned{background:var(--purple-l);color:var(--purple-d)}
+.comm-body{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.comm-field{background:var(--bg);border-radius:8px;padding:10px 12px}
+.comm-field-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.comm-field-val{font-size:12px;color:var(--text);line-height:1.5}
+.comm-benchmark{background:var(--amber-l);border-radius:8px;padding:10px 12px;margin-bottom:12px;border-left:3px solid var(--amber)}
+.comm-benchmark-label{font-size:10px;font-weight:700;color:var(--amber-d);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.comm-benchmark-val{font-size:12px;color:var(--amber-d);line-height:1.5}
+.comm-team{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.comm-member-tag{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:var(--teal-l);color:var(--teal-d)}
+.comm-roles{font-size:11px;color:var(--muted);line-height:1.6}
+.comm-edit-btn{font-size:11px;color:var(--muted);cursor:pointer;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:transparent;display:none}
+.admin-mode .comm-edit-btn{display:inline-block}
+.comm-empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;background:var(--card);border:1px dashed var(--border);border-radius:12px}
+.comm-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.comm-stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-align:center}
+.comm-stat-val{font-size:22px;font-weight:700}
+.comm-stat-label{font-size:10px;color:var(--muted);margin-top:2px}
+@media(max-width:768px){.comm-body{grid-template-columns:1fr 1fr}.comm-summary{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.comm-body{grid-template-columns:1fr}.comm-summary{grid-template-columns:1fr}}
 .settings-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px}
 .settings-card h3{font-size:14px;font-weight:600;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
 .settings-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
@@ -306,7 +343,8 @@ function setupSheets(ss) {
     'Standups':   ['id','member','day','done','plan','blockers','numbers','timestamp'],
     'Sprint':     ['key','value'],
     'Activities': ['day','type','text','tag_color'],
-    'Team':       ['initials','name','role','color','metric_key']
+    'Team':       ['initials','name','role','color','metric_key'],
+    'Communities':['id','name','benchmark','time_slot','workshop_type','workshop_details','members_assigned','roles','date','status']
   };
   for (const [name, headers] of Object.entries(defs)) {
     let ws = ss.getSheetByName(name);
@@ -394,7 +432,14 @@ function setupSheets(ss) {
     tm.appendRow(['WO','Employee D','Workshop Operations','purple','demo_workshops']);
     tm.appendRow(['GL','You / Lead','Growth Manager','red','']);
   }
-}
+  const cm = ss.getSheetByName('Communities');
+  if (cm.getLastRow() < 2) {
+    cm.appendRow(['C001','Ramkyone Galaxia','Enroll 50+ in WhatsApp group, Promote Summer Camp, Introduce JX Calendar','3pm-8pm','Demo+Mass','Robotics Rs149, VR (5 mins) Rs99','Krishna,Akshat,Mitesh','Mitesh: Customer Acquisition + Summer Camp pitching | Krishna: Arrangements + Customer Acquisition | Akshat: Photos & Videos','2026-03-18','blocked']);
+    cm.appendRow(['C002','Janapriye Nille Valley','Enroll 50+ in WhatsApp group, Promote Summer Camp, Introduce JX Calendar','12pm-8pm','Demo+Mass','Robotics Rs199, VR (3 mins) Rs99','Akshat,Krishna,Mitesh,Sai','Mitesh: Customer Acquisition | Krishna: Arrangements | Akshat: Photos & Videos | Sai: Music & Beats','2026-03-19','blocked']);
+    cm.appendRow(['C003','Hill County','Get more people into WhatsApp group, Introduce JX Calendar','11am-6pm','Class','Salad Dressing, Ceramic Painting, Robotics++','Digvijay,Akshat,Krishna,Mitesh','Digvijay: Hosting Workshop | Akshat: Photos & Videos | Mitesh & Krishna: Customer Acquisition','2026-03-21','blocked']);
+    cm.appendRow(['C004','Aparna Tulip','Get more people into WhatsApp group, Introduce JX Calendar','4pm-6pm','Class','Public Speaking Class','Digvijay,Krishna,Akshat','Digvijay: Conduct Workshop | Krishna/Akshat: Arrangements + Photos & Videos','2026-03-21','blocked']);
+    cm.appendRow(['C005','Poulomi Avante Kokapet','Enroll 70+ in WhatsApp group, Promote Summer Camp, Introduce JX Calendar','12pm-10pm','Demo+Mass','Robotics Rs199, VR (3 mins) Rs99','Krishna,Mitesh,Akshat,Sai','Mitesh: Customer Acquisition | Krishna: Arrangements | Akshat: Photos & Videos | Sai: Music & Beats','2026-03-22','blocked']);
+  }
 
 function getWeek(d) {
   const onejan = new Date(d.getFullYear(), 0, 1);
@@ -463,7 +508,39 @@ function getWeek(d) {
   </div>
 </div>
 
-<!-- ══ TOP BAR ═════════════════════════════════════════ -->
+<!-- ══ COMMUNITY MODAL ════════════════════════════════ -->
+<div class="modal-overlay" id="comm-modal">
+  <div class="modal" style="max-width:560px">
+    <h3 id="comm-modal-title">Add community plan</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field" style="grid-column:1/-1"><label>Community name</label><input id="c-name" placeholder="e.g. Ramkyone Galaxia"></div>
+      <div class="field"><label>Date</label><input id="c-date" type="date"></div>
+      <div class="field"><label>Time slot</label><input id="c-time" placeholder="e.g. 3pm – 8pm"></div>
+      <div class="field"><label>Workshop type</label>
+        <select id="c-wtype">
+          <option>Demo+Mass</option><option>Class</option><option>Demo only</option><option>Mass workshop</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Status</label>
+        <select id="c-status">
+          <option value="planned">Planned</option>
+          <option value="inprogress">In Progress</option>
+          <option value="done">Done</option>
+          <option value="blocked">Blocked</option>
+        </select>
+      </div>
+      <div class="field" style="grid-column:1/-1"><label>Benchmark / Acceptance criteria</label><textarea id="c-benchmark" placeholder="e.g. Enroll 50+ in WhatsApp group, Promote Summer Camp, Introduce JX Calendar"></textarea></div>
+      <div class="field" style="grid-column:1/-1"><label>Workshop details</label><textarea id="c-wdetails" placeholder="e.g. Robotics ₹149, VR (5 mins) ₹99"></textarea></div>
+      <div class="field" style="grid-column:1/-1"><label>Members assigned (comma separated)</label><input id="c-members" placeholder="e.g. Krishna, Akshat, Mitesh"></div>
+      <div class="field" style="grid-column:1/-1"><label>Roles & responsibilities</label><textarea id="c-roles" placeholder="e.g. Mitesh: Customer Acquisition, Krishna: Arrangements..."></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeCommModal()">Cancel</button>
+      <button class="btn-danger" id="comm-delete-btn" onclick="deleteComm()" style="display:none">Delete</button>
+      <button class="btn-primary" onclick="saveComm()">Save community</button>
+    </div>
+  </div>
+</div>
 <div class="topbar">
   <div class="brand">
     <div class="logo">
@@ -496,11 +573,28 @@ function getWeek(d) {
   <!-- NAV -->
   <div class="nav">
     <button class="nav-btn active" onclick="showSection('daily')">Daily Board</button>
+    <button class="nav-btn" onclick="showSection('communities')">Communities</button>
     <button class="nav-btn" onclick="showSection('kanban')">Task Board</button>
     <button class="nav-btn" onclick="showSection('team')">Team</button>
     <button class="nav-btn" onclick="showSection('funnel')">Funnel</button>
     <button class="nav-btn" onclick="showSection('standup')">Daily Standup</button>
     <button class="nav-btn" onclick="showSection('settings')" id="settings-nav" style="display:none">Settings</button>
+  </div>
+
+  <!-- ─ COMMUNITIES (EPIC SPRINT PLAN) ────────────────── -->
+  <div id="communities" class="section">
+    <div class="comm-summary" id="comm-summary-strip"></div>
+    <div class="comm-toolbar">
+      <div class="comm-toolbar-left">
+        <div class="comm-filter active" onclick="filterComm('all',this)">All</div>
+        <div class="comm-filter" onclick="filterComm('planned',this)">Planned</div>
+        <div class="comm-filter" onclick="filterComm('inprogress',this)">In Progress</div>
+        <div class="comm-filter" onclick="filterComm('done',this)">Done</div>
+        <div class="comm-filter" onclick="filterComm('blocked',this)">Blocked</div>
+      </div>
+      <button class="comm-add-btn" onclick="openCommModal()">+ Add community</button>
+    </div>
+    <div id="comm-list"></div>
   </div>
 
   <!-- ─ DAILY BOARD ───────────────────────────────────── -->
@@ -634,7 +728,7 @@ function getWeek(d) {
 //  STATE
 // ══════════════════════════════════════════════════════
 let CFG = {};
-let STATE = { tasks:[], standups:[], metrics:[], sprint:{}, activities:[], team:[] };
+let STATE = { tasks:[], standups:[], metrics:[], sprint:{}, activities:[], team:[], communities:[] };
 let isAdmin = false;
 let editingTaskId = null;
 let editingMetricKey = null;
@@ -769,9 +863,9 @@ async function loadAllData() {
   if (!CFG.url) return;
   setSyncStatus('loading','Syncing...');
   try {
-    const [metricsRaw, tasksRaw, standupsRaw, sprintRaw, activitiesRaw, teamRaw] = await Promise.all([
+    const [metricsRaw, tasksRaw, standupsRaw, sprintRaw, activitiesRaw, teamRaw, commRaw] = await Promise.all([
       apiGet('Metrics'), apiGet('Tasks'), apiGet('Standups'), apiGet('Sprint'),
-      apiGet('Activities'), apiGet('Team')
+      apiGet('Activities'), apiGet('Team'), apiGet('Communities')
     ]);
 
     // Parse metrics
@@ -804,6 +898,12 @@ async function loadAllData() {
       initials:r[0], name:r[1], role:r[2], color:r[3]||'amber', metricKey:r[4]||''
     }));
 
+    // Parse communities
+    STATE.communities = commRaw.slice(1).filter(r=>r[0]).map(r => ({
+      id:r[0], name:r[1], benchmark:r[2], timeSlot:r[3], workshopType:r[4],
+      workshopDetails:r[5], members:r[6], roles:r[7], date:r[8], status:(r[9]||'planned').toLowerCase().replace(' ','')
+    }));
+
     renderAll();
     setSyncStatus('ok', 'Synced ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
   } catch(e) {
@@ -824,6 +924,7 @@ function renderAll() {
   renderTeam();
   renderStandupLog();
   renderFunnel();
+  renderCommunities();
   updateSprintPill();
 }
 
@@ -1254,9 +1355,153 @@ function showSection(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach((b,i) => {
-    const ids = ['daily','kanban','team','funnel','standup','settings'];
+    const ids = ['daily','communities','kanban','team','funnel','standup','settings'];
     b.classList.toggle('active', ids[i] === id);
   });
+}
+
+// ══════════════════════════════════════════════════════
+//  COMMUNITIES (EPICS)
+// ══════════════════════════════════════════════════════
+let commFilter = 'all';
+let editingCommId = null;
+
+const STATUS_META = {
+  blocked:    { label:'Blocked',     cls:'blocked' },
+  done:       { label:'Done',        cls:'done' },
+  inprogress: { label:'In Progress', cls:'inprogress' },
+  planned:    { label:'Planned',     cls:'planned' }
+};
+
+function renderCommunities() {
+  const all = STATE.communities;
+  const filtered = commFilter === 'all' ? all : all.filter(c => c.status === commFilter);
+
+  // Summary strip
+  const strip = document.getElementById('comm-summary-strip');
+  if (strip) {
+    const total    = all.length;
+    const done     = all.filter(c=>c.status==='done').length;
+    const blocked  = all.filter(c=>c.status==='blocked').length;
+    const planned  = all.filter(c=>c.status==='planned'||c.status==='inprogress').length;
+    strip.innerHTML = `
+      <div class="comm-stat"><div class="comm-stat-val" style="color:var(--amber)">${total}</div><div class="comm-stat-label">Total communities</div></div>
+      <div class="comm-stat"><div class="comm-stat-val" style="color:var(--teal)">${done}</div><div class="comm-stat-label">Completed</div></div>
+      <div class="comm-stat"><div class="comm-stat-val" style="color:var(--amber)">${planned}</div><div class="comm-stat-label">In pipeline</div></div>
+      <div class="comm-stat"><div class="comm-stat-val" style="color:var(--red)">${blocked}</div><div class="comm-stat-label">Blocked</div></div>
+    `;
+  }
+
+  const list = document.getElementById('comm-list');
+  if (!list) return;
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="comm-empty">${all.length===0 ? 'No communities yet — add rows to the Communities tab in your Google Sheet, then click ↻ Sync.' : 'No communities match this filter.'}</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(c => {
+    const sm = STATUS_META[c.status] || STATUS_META.planned;
+    const members = (c.members||'').split(',').map(m=>m.trim()).filter(Boolean);
+    const editBtn = `<button class="comm-edit-btn" onclick="openCommModal('${c.id}')">✏️ Edit</button>`;
+    return `<div class="comm-card">
+      <div class="comm-header">
+        <div class="comm-title-block">
+          <div class="comm-name">${escHtml(c.name)}</div>
+          <div class="comm-date">${escHtml(c.date||'')} ${c.timeSlot ? '· '+escHtml(c.timeSlot) : ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${editBtn}
+          <span class="status-pill ${sm.cls}">${sm.label}</span>
+        </div>
+      </div>
+      ${c.benchmark ? `<div class="comm-benchmark">
+        <div class="comm-benchmark-label">Sprint benchmark (acceptance criteria)</div>
+        <div class="comm-benchmark-val">${escHtml(c.benchmark)}</div>
+      </div>` : ''}
+      <div class="comm-body">
+        <div class="comm-field">
+          <div class="comm-field-label">Workshop type</div>
+          <div class="comm-field-val">${escHtml(c.workshopType||'—')}</div>
+        </div>
+        <div class="comm-field">
+          <div class="comm-field-label">Workshop details</div>
+          <div class="comm-field-val">${escHtml(c.workshopDetails||'—')}</div>
+        </div>
+        <div class="comm-field">
+          <div class="comm-field-label">Time slot</div>
+          <div class="comm-field-val">${escHtml(c.timeSlot||'—')}</div>
+        </div>
+      </div>
+      ${members.length ? `<div class="comm-team">${members.map(m=>`<span class="comm-member-tag">${escHtml(m)}</span>`).join('')}</div>` : ''}
+      ${c.roles ? `<div class="comm-roles">${escHtml(c.roles)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function filterComm(status, el) {
+  commFilter = status;
+  document.querySelectorAll('.comm-filter').forEach(f => f.classList.remove('active'));
+  el.classList.add('active');
+  renderCommunities();
+}
+
+function openCommModal(id) {
+  if (!isAdmin) return;
+  editingCommId = id || null;
+  const c = id ? STATE.communities.find(x=>x.id===id) : null;
+  document.getElementById('comm-modal-title').textContent = c ? 'Edit community' : 'Add community plan';
+  document.getElementById('c-name').value       = c ? c.name : '';
+  document.getElementById('c-date').value       = c ? c.date : '';
+  document.getElementById('c-time').value       = c ? c.timeSlot : '';
+  document.getElementById('c-wtype').value      = c ? c.workshopType : 'Demo+Mass';
+  document.getElementById('c-status').value     = c ? c.status : 'planned';
+  document.getElementById('c-benchmark').value  = c ? c.benchmark : '';
+  document.getElementById('c-wdetails').value   = c ? c.workshopDetails : '';
+  document.getElementById('c-members').value    = c ? c.members : '';
+  document.getElementById('c-roles').value      = c ? c.roles : '';
+  document.getElementById('comm-delete-btn').style.display = c ? 'inline-block' : 'none';
+  document.getElementById('comm-modal').classList.add('open');
+}
+
+function closeCommModal() { document.getElementById('comm-modal').classList.remove('open'); }
+
+async function saveComm() {
+  const name = document.getElementById('c-name').value.trim();
+  if (!name) { toast('Community name is required','error'); return; }
+  const row = [
+    editingCommId || ('C'+Date.now()),
+    name,
+    document.getElementById('c-benchmark').value.trim(),
+    document.getElementById('c-time').value.trim(),
+    document.getElementById('c-wtype').value,
+    document.getElementById('c-wdetails').value.trim(),
+    document.getElementById('c-members').value.trim(),
+    document.getElementById('c-roles').value.trim(),
+    document.getElementById('c-date').value,
+    document.getElementById('c-status').value
+  ];
+  if (editingCommId) {
+    const idx = STATE.communities.findIndex(c=>c.id===editingCommId);
+    if (idx >= 0) {
+      for (let col=1; col<=row.length; col++) {
+        await apiPost({ sheet:'Communities', action:'update_cell', row:idx+2, col, value:row[col-1] });
+      }
+    }
+  } else {
+    await apiPost({ sheet:'Communities', action:'append', row });
+  }
+  closeCommModal();
+  toast('Community saved','success');
+  await loadAllData();
+}
+
+async function deleteComm() {
+  if (!editingCommId || !confirm('Delete this community plan?')) return;
+  await apiPost({ sheet:'Communities', action:'delete_row', id:editingCommId });
+  closeCommModal();
+  toast('Community deleted');
+  await loadAllData();
 }
 
 function showDay(d, el) {
