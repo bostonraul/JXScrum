@@ -250,6 +250,42 @@ pre.script-box{background:#1e1e1e;color:#d4d4d4;border-radius:10px;padding:14px;
 .save-settings{padding:9px 20px;background:var(--amber);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
 .danger-btn{padding:9px 16px;background:var(--red-l);color:var(--red-d);border:1px solid var(--red);border-radius:8px;font-size:12px;cursor:pointer;font-weight:600}
 
+/* ── AVAILABILITY ────────────────────────────────────── */
+.avail-form{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.avail-form h3{font-size:14px;font-weight:600;margin-bottom:6px}
+.avail-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.day-check-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:14px}
+.day-check{border:1px solid var(--border);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;transition:all .15s;user-select:none;background:var(--card)}
+.day-check .dc-label{font-size:11px;font-weight:600;color:var(--muted)}
+.day-check .dc-date{font-size:10px;color:var(--muted);margin-top:2px}
+.day-check.unavail{background:var(--red-l);border-color:var(--red);border-width:1.5px}
+.day-check.unavail .dc-label,.day-check.unavail .dc-date{color:var(--red-d)}
+.avail-legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-bottom:14px;align-items:center}
+.leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;display:inline-block}
+.avail-log{display:flex;flex-direction:column;gap:8px}
+.avail-entry{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.avail-entry-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.avail-member{font-size:13px;font-weight:600}
+.avail-ts{font-size:10px;color:var(--muted)}
+.avail-days-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+.avail-day-tag{font-size:11px;font-weight:600;padding:3px 9px;border-radius:12px}
+.avail-day-tag.off{background:var(--red-l);color:var(--red-d)}
+.avail-day-tag.on{background:var(--teal-l);color:var(--teal-d)}
+.avail-comment{font-size:12px;color:var(--muted);line-height:1.5;font-style:italic}
+.avail-week-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+.avail-week-card h4{font-size:13px;font-weight:600;margin-bottom:12px}
+.avail-team-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px}
+.avail-team-name{width:130px;font-weight:600;flex-shrink:0;font-size:12px}
+.avail-day-cells{display:flex;gap:4px}
+.avail-cell{width:36px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
+.avail-cell.free{background:var(--teal-l);color:var(--teal-d)}
+.avail-cell.busy{background:var(--red-l);color:var(--red-d)}
+.avail-cell.unknown{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+.avail-day-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.avail-day-header-name{width:130px;flex-shrink:0}
+.avail-col-labels{display:flex;gap:4px}
+.avail-col-label{width:36px;text-align:center;font-size:10px;font-weight:600;color:var(--muted)}
+
 /* ── TOAST ───────────────────────────────────────────── */
 #toast{position:fixed;bottom:24px;right:24px;background:#1a1a18;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;transform:translateY(20px);opacity:0;transition:all .25s;pointer-events:none}
 #toast.show{transform:translateY(0);opacity:1}
@@ -344,7 +380,8 @@ function setupSheets(ss) {
     'Sprint':     ['key','value'],
     'Activities': ['day','type','text','tag_color'],
     'Team':       ['initials','name','role','color','metric_key'],
-    'Communities':['id','name','benchmark','time_slot','workshop_type','workshop_details','members_assigned','roles','date','status']
+    'Communities':['id','name','benchmark','time_slot','workshop_type','workshop_details','members_assigned','roles','date','status'],
+    'Availability':['id','member','unavail_days','comment','submitted_at']
   };
   for (const [name, headers] of Object.entries(defs)) {
     let ws = ss.getSheetByName(name);
@@ -579,6 +616,7 @@ function getWeek(d) {
     <button class="nav-btn" onclick="showSection('team')">Team</button>
     <button class="nav-btn" onclick="showSection('funnel')">Funnel</button>
     <button class="nav-btn" onclick="showSection('standup')">Daily Standup</button>
+    <button class="nav-btn" onclick="showSection('availability')">Availability</button>
     <button class="nav-btn" onclick="showSection('settings')" id="settings-nav" style="display:none">Settings</button>
   </div>
 
@@ -695,6 +733,38 @@ function getWeek(d) {
     <div class="log-list" id="standup-log"></div>
   </div>
 
+  <!-- ─ AVAILABILITY ──────────────────────────────────── -->
+  <div id="availability" class="section">
+    <div class="avail-week-card">
+      <h4>Team availability — current sprint week</h4>
+      <div class="avail-day-header">
+        <div class="avail-day-header-name"></div>
+        <div class="avail-col-labels" id="avail-col-labels"></div>
+      </div>
+      <div id="avail-matrix"></div>
+    </div>
+    <div class="avail-form">
+      <h3>Mark your availability</h3>
+      <p class="avail-sub">Tap the days you are <strong>NOT available</strong> this week. They turn red. Add a comment explaining why.</p>
+      <div style="margin-bottom:10px">
+        <label class="s-label">Your name</label>
+        <select class="s-input" id="av-member" style="max-width:280px"></select>
+      </div>
+      <div class="day-check-grid" id="av-day-grid"></div>
+      <div class="avail-legend">
+        <span><span class="leg-dot" style="background:var(--card);border:1px solid var(--border)"></span>Available</span>
+        <span><span class="leg-dot" style="background:var(--red-l);border:1.5px solid var(--red)"></span>Not available</span>
+      </div>
+      <div style="margin-bottom:10px">
+        <label class="s-label">Reason / comment</label>
+        <textarea class="s-textarea" id="av-comment" placeholder="e.g. Out of station Thursday–Friday, available on phone. Or: Half day Saturday due to family function." style="height:60px;width:100%"></textarea>
+      </div>
+      <button class="submit-btn" onclick="submitAvailability()" id="av-btn" style="max-width:280px">Submit availability →</button>
+    </div>
+    <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--muted)">Availability log — this sprint</div>
+    <div class="avail-log" id="avail-log"></div>
+  </div>
+
   <!-- ─ SETTINGS ────────────────────────────────────────── -->
   <div id="settings" class="section">
     <div class="settings-card">
@@ -729,7 +799,7 @@ function getWeek(d) {
 //  STATE
 // ══════════════════════════════════════════════════════
 let CFG = {};
-let STATE = { tasks:[], standups:[], metrics:[], sprint:{}, activities:[], team:[], communities:[] };
+let STATE = { tasks:[], standups:[], metrics:[], sprint:{}, activities:[], team:[], communities:[], availability:[] };
 let isAdmin = false;
 let editingTaskId = null;
 let editingMetricKey = null;
@@ -864,9 +934,9 @@ async function loadAllData() {
   if (!CFG.url) return;
   setSyncStatus('loading','Syncing...');
   try {
-    const [metricsRaw, tasksRaw, standupsRaw, sprintRaw, activitiesRaw, teamRaw, commRaw] = await Promise.all([
+    const [metricsRaw, tasksRaw, standupsRaw, sprintRaw, activitiesRaw, teamRaw, commRaw, availRaw] = await Promise.all([
       apiGet('Metrics'), apiGet('Tasks'), apiGet('Standups'), apiGet('Sprint'),
-      apiGet('Activities'), apiGet('Team'), apiGet('Communities')
+      apiGet('Activities'), apiGet('Team'), apiGet('Communities'), apiGet('Availability')
     ]);
 
     // Parse metrics
@@ -905,6 +975,11 @@ async function loadAllData() {
       workshopDetails:r[5], members:r[6], roles:r[7], date:r[8], status:(r[9]||'planned').toLowerCase().replace(' ','')
     }));
 
+    // Parse availability
+    STATE.availability = availRaw.slice(1).filter(r=>r[0]).map(r => ({
+      id:r[0], member:r[1], unavailDays:r[2]||'', comment:r[3]||'', submittedAt:r[4]||''
+    })).reverse();
+
     renderAll();
     setSyncStatus('ok', 'Synced ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
   } catch(e) {
@@ -926,6 +1001,7 @@ function renderAll() {
   renderStandupLog();
   renderFunnel();
   renderCommunities();
+  renderAvailability();
   updateSprintPill();
 }
 
@@ -1394,9 +1470,10 @@ function showSection(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach((b,i) => {
-    const ids = ['daily','communities','kanban','team','funnel','standup','settings'];
+    const ids = ['daily','communities','kanban','team','funnel','standup','availability','settings'];
     b.classList.toggle('active', ids[i] === id);
   });
+  if (id === 'availability') renderAvailability();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1582,7 +1659,143 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function simpleHash(str) {
+// ══════════════════════════════════════════════════════
+//  AVAILABILITY
+// ══════════════════════════════════════════════════════
+const WEEK_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+// Get the Mon–Sun dates of the current IST week
+function getWeekDates() {
+  const now = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
+  const day = now.getDay() || 7;
+  const mon = new Date(now); mon.setDate(now.getDate() - day + 1); mon.setHours(0,0,0,0);
+  return WEEK_DAYS.map((_,i) => {
+    const d = new Date(mon); d.setDate(mon.getDate() + i);
+    return d;
+  });
+}
+
+function formatShortDate(d) {
+  return d.toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short'});
+}
+
+let avSelectedDays = new Set(); // days marked unavailable
+
+function renderAvailability() {
+  const weekDates = getWeekDates();
+
+  // Populate member dropdown from team
+  const sel = document.getElementById('av-member');
+  if (sel && STATE.team.length) {
+    sel.innerHTML = STATE.team.map(t =>
+      `<option>${escHtml(t.name)} – ${escHtml(t.role)}</option>`
+    ).join('');
+  }
+
+  // Build day-toggle grid
+  const grid = document.getElementById('av-day-grid');
+  if (grid) {
+    grid.innerHTML = WEEK_DAYS.map((d,i) => {
+      const isUnavail = avSelectedDays.has(d);
+      return `<div class="day-check ${isUnavail?'unavail':''}" onclick="toggleAvailDay('${d}',this)">
+        <div class="dc-label">${d}</div>
+        <div class="dc-date">${formatShortDate(weekDates[i])}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Column labels for matrix
+  const colLabels = document.getElementById('avail-col-labels');
+  if (colLabels) {
+    colLabels.innerHTML = WEEK_DAYS.map((d,i) =>
+      `<div class="avail-col-label">${d}<br><span style="font-weight:400;font-size:9px">${formatShortDate(weekDates[i])}</span></div>`
+    ).join('');
+  }
+
+  // Build team matrix — latest entry per member wins
+  const matrix = document.getElementById('avail-matrix');
+  if (matrix && STATE.team.length) {
+    // latest availability per member
+    const latestByMember = {};
+    [...STATE.availability].reverse().forEach(a => {
+      const key = a.member.split('–')[0].trim();
+      if (!latestByMember[key]) latestByMember[key] = a.unavailDays;
+    });
+
+    matrix.innerHTML = STATE.team.map(t => {
+      const unavailStr = latestByMember[t.name] || '';
+      const unavailSet = new Set(unavailStr.split(',').map(s=>s.trim()).filter(Boolean));
+      const cells = WEEK_DAYS.map(d => {
+        if (unavailSet.has(d)) return `<div class="avail-cell busy">OFF</div>`;
+        if (unavailStr === '' && !latestByMember[t.name]) return `<div class="avail-cell unknown">?</div>`;
+        return `<div class="avail-cell free">✓</div>`;
+      }).join('');
+      return `<div class="avail-team-row">
+        <div class="avail-team-name">${escHtml(t.name)}</div>
+        <div class="avail-day-cells">${cells}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Render log
+  const log = document.getElementById('avail-log');
+  if (log) {
+    if (!STATE.availability.length) {
+      log.innerHTML = '<div class="log-empty">No availability submitted yet this sprint.</div>';
+    } else {
+      log.innerHTML = STATE.availability.map(a => {
+        const unavailList = (a.unavailDays||'').split(',').map(s=>s.trim()).filter(Boolean);
+        const allDays = new Set(unavailList);
+        const tags = WEEK_DAYS.map(d =>
+          `<span class="avail-day-tag ${allDays.has(d)?'off':'on'}">${d}</span>`
+        ).join('');
+        return `<div class="avail-entry">
+          <div class="avail-entry-header">
+            <span class="avail-member">${escHtml(a.member)}</span>
+            <span class="avail-ts">${escHtml(a.submittedAt)}</span>
+          </div>
+          <div class="avail-days-row">${tags}</div>
+          ${a.comment ? `<div class="avail-comment">"${escHtml(a.comment)}"</div>` : ''}
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
+function toggleAvailDay(day, el) {
+  if (avSelectedDays.has(day)) {
+    avSelectedDays.delete(day);
+    el.classList.remove('unavail');
+  } else {
+    avSelectedDays.add(day);
+    el.classList.add('unavail');
+  }
+}
+
+async function submitAvailability() {
+  const member  = document.getElementById('av-member').value;
+  const comment = document.getElementById('av-comment').value.trim();
+  const unavail = [...avSelectedDays].join(', ');
+  const btn = document.getElementById('av-btn');
+
+  btn.disabled = true; btn.textContent = 'Saving...';
+  const id = 'A' + Date.now();
+  const ts = new Date().toLocaleString('en-IN',{
+    timeZone:'Asia/Kolkata', day:'2-digit', month:'short',
+    hour:'2-digit', minute:'2-digit', hour12:true
+  }) + ' IST';
+
+  try {
+    await apiPost({ sheet:'Availability', action:'append', row:[id, member, unavail, comment, ts] });
+    avSelectedDays.clear();
+    document.getElementById('av-comment').value = '';
+    toast('Availability submitted!','success');
+    await loadAllData();
+  } catch(e) {
+    toast('Failed: ' + e.message, 'error');
+  }
+  btn.disabled = false; btn.textContent = 'Submit availability →';
+}
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) - hash) + str.charCodeAt(i);
