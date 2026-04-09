@@ -934,9 +934,11 @@ async function loadAllData() {
   if (!CFG.url) return;
   setSyncStatus('loading','Syncing...');
   try {
+    // Fetch all sheets — each is wrapped so a missing sheet never breaks the others
+    const safe = async (sheet) => { try { return await apiGet(sheet); } catch(e) { return []; } };
     const [metricsRaw, tasksRaw, standupsRaw, sprintRaw, activitiesRaw, teamRaw, commRaw, availRaw] = await Promise.all([
-      apiGet('Metrics'), apiGet('Tasks'), apiGet('Standups'), apiGet('Sprint'),
-      apiGet('Activities'), apiGet('Team'), apiGet('Communities'), apiGet('Availability')
+      safe('Metrics'), safe('Tasks'), safe('Standups'), safe('Sprint'),
+      safe('Activities'), safe('Team'), safe('Communities'), safe('Availability')
     ]);
 
     // Parse metrics
@@ -1796,6 +1798,8 @@ async function submitAvailability() {
   }
   btn.disabled = false; btn.textContent = 'Submit availability →';
 }
+
+function simpleHash(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) - hash) + str.charCodeAt(i);
