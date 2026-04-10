@@ -1009,34 +1009,47 @@ function renderAll() {
 
 // ── SPRINT PILL ──────────────────────────────────────
 function updateSprintPill() {
-  const name = STATE.sprint.sprint_name || CFG.sprintName || 'Sprint';
-  document.getElementById('sprint-pill').textContent = name;
-  document.getElementById('sprint-name-label').textContent = name;
+  // Always compute current week Mon–Sun in IST dynamically
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const day = now.getDay() || 7; // Mon=1 … Sun=7
+  const mon = new Date(now); mon.setDate(now.getDate() - day + 1);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+
+  const fmt = (d) => d.toLocaleDateString('en-IN', {
+    timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short'
+  }); // e.g. "7 Apr"
+
+  const weekLabel = `Week ${fmt(mon)} – ${fmt(sun)}`;
+
+  document.getElementById('sprint-pill').textContent = weekLabel;
+  const nameEl = document.getElementById('sprint-name-label');
+  if (nameEl) nameEl.textContent = weekLabel;
 }
 
 // ── DATE HELPERS ──────────────────────────────────────
 function formatDateIST(raw) {
   if (!raw) return '';
   try {
+    // Handle Google Sheets date objects which come as ISO strings or serial numbers
     const d = new Date(raw);
-    if (isNaN(d)) return String(raw);
+    if (isNaN(d)) return String(raw).split('T')[0]; // fallback: strip time part
     return d.toLocaleDateString('en-IN', {
       timeZone: 'Asia/Kolkata',
-      day: 'numeric', month: 'long', year: 'numeric'
-    }); // e.g. "18 March 2026"
-  } catch(e) { return String(raw); }
+      weekday: 'short', day: 'numeric', month: 'long', year: 'numeric'
+    }); // e.g. "Thu, 10 April 2026"
+  } catch(e) { return String(raw).split('T')[0]; }
 }
 
 function formatTimeIST(raw) {
   if (!raw) return '';
   try {
     const d = new Date(raw);
-    if (isNaN(d)) return String(raw);
+    if (isNaN(d)) return '';
     return d.toLocaleTimeString('en-IN', {
       timeZone: 'Asia/Kolkata',
       hour: '2-digit', minute: '2-digit', hour12: true
     }) + ' IST';
-  } catch(e) { return String(raw); }
+  } catch(e) { return ''; }
 }
 
 // Returns true if a community's date falls within the current ISO week (Mon–Sun, IST)
@@ -1544,7 +1557,7 @@ function renderCommunities() {
       <div class="comm-header">
         <div class="comm-title-block">
           <div class="comm-name">${escHtml(c.name)}${thisWeekBadge}</div>
-          <div class="comm-date">${dateStr ? dateStr + ' IST' : ''}${c.timeSlot ? ' · ' + escHtml(c.timeSlot) : ''}</div>
+          <div class="comm-date">${dateStr || ''}${c.timeSlot ? `<br><span style="font-size:11px;color:var(--muted)">${escHtml(c.timeSlot)}</span>` : ''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           ${editBtn}
