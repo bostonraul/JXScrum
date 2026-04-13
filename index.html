@@ -218,6 +218,7 @@ pre.script-box{background:#1e1e1e;color:#d4d4d4;border-radius:10px;padding:14px;
 .comm-date{font-size:11px;color:var(--muted)}
 .comm-status{flex-shrink:0}
 .status-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px}
+.status-pill.outreach{background:var(--purple-l);color:var(--purple-d)}
 .status-pill.blocked{background:var(--red-l);color:var(--red-d)}
 .status-pill.done{background:var(--teal-l);color:var(--teal-d)}
 .status-pill.inprogress{background:var(--amber-l);color:var(--amber-d)}
@@ -380,7 +381,7 @@ function setupSheets(ss) {
     'Sprint':     ['key','value'],
     'Activities': ['day','type','text','tag_color'],
     'Team':       ['initials','name','role','color','metric_key'],
-    'Communities':['id','name','benchmark','time_slot','workshop_type','workshop_details','members_assigned','roles','date','status'],
+    'Communities':['id','name','benchmark','time_slot','workshop_type','workshop_details','members_assigned','roles','date','status','approach','no_flats','fm_name','fm_number','rent_open','rent_closed','rent_notice','banner_marketing','date_visit','date_demo','date_mass','date_class','jx_form','jx_calendar'],
     'Availability':['id','member','unavail_days','comment','submitted_at']
   };
   for (const [name, headers] of Object.entries(defs)) {
@@ -471,11 +472,15 @@ function setupSheets(ss) {
   }
   const cm = ss.getSheetByName('Communities');
   if (cm.getLastRow() < 2) {
-    cm.appendRow(['C001','Ramkyone Galaxia','Enroll 50+ in WhatsApp group, Promote Summer Camp, Introduce JX Calendar','3pm-8pm','Demo+Mass','Robotics Rs149, VR (5 mins) Rs99','Krishna,Akshat,Mitesh','Mitesh: Customer Acquisition + Summer Camp pitching | Krishna: Arrangements + Customer Acquisition | Akshat: Photos & Videos','2026-03-18','blocked']);
-    cm.appendRow(['C002','Janapriye Nille Valley','Enroll 50+ in WhatsApp group, Promote Summer Camp, Introduce JX Calendar','12pm-8pm','Demo+Mass','Robotics Rs199, VR (3 mins) Rs99','Akshat,Krishna,Mitesh,Sai','Mitesh: Customer Acquisition | Krishna: Arrangements | Akshat: Photos & Videos | Sai: Music & Beats','2026-03-19','blocked']);
-    cm.appendRow(['C003','Hill County','Get more people into WhatsApp group, Introduce JX Calendar','11am-6pm','Class','Salad Dressing, Ceramic Painting, Robotics++','Digvijay,Akshat,Krishna,Mitesh','Digvijay: Hosting Workshop | Akshat: Photos & Videos | Mitesh & Krishna: Customer Acquisition','2026-03-21','blocked']);
-    cm.appendRow(['C004','Aparna Tulip','Get more people into WhatsApp group, Introduce JX Calendar','4pm-6pm','Class','Public Speaking Class','Digvijay,Krishna,Akshat','Digvijay: Conduct Workshop | Krishna/Akshat: Arrangements + Photos & Videos','2026-03-21','blocked']);
-    cm.appendRow(['C005','Poulomi Avante Kokapet','Enroll 70+ in WhatsApp group, Promote Summer Camp, Introduce JX Calendar','12pm-10pm','Demo+Mass','Robotics Rs199, VR (3 mins) Rs99','Krishna,Mitesh,Akshat,Sai','Mitesh: Customer Acquisition | Krishna: Arrangements | Akshat: Photos & Videos | Sai: Music & Beats','2026-03-22','blocked']);
+    // Columns: id,name,benchmark,time_slot,workshop_type,workshop_details,members_assigned,roles,date,status,
+    //          approach,no_flats,fm_name,fm_number,rent_open,rent_closed,rent_notice,banner_marketing,
+    //          date_visit,date_demo,date_mass,date_class,jx_form,jx_calendar
+    cm.appendRow(['C001','Ramkyone Galaxia','Enroll 50+ in WhatsApp group, Promote Summer Camp, Introduce JX Calendar','3pm-8pm','Demo+Mass','Robotics Rs149, VR (5 mins) Rs99','Krishna,Akshat,Mitesh','Mitesh: Customer Acquisition | Krishna: Arrangements | Akshat: Photos & Videos','2026-03-18','done','','','','','','','','','','','','','','']);
+    cm.appendRow(['C002','Janapriye Nille Valley','Enroll 50+ in WhatsApp group, Promote Summer Camp, Introduce JX Calendar','12pm-8pm','Demo+Mass','Robotics Rs199, VR (3 mins) Rs99','Akshat,Krishna,Mitesh,Sai','Mitesh: Customer Acquisition | Krishna: Arrangements | Akshat: Photos & Videos | Sai: Music & Beats','2026-03-19','done','','','','','','','','','','','','','','']);
+    cm.appendRow(['C003','Hill County','Get more people into WhatsApp group, Introduce JX Calendar','11am-6pm','Class','Salad Dressing, Ceramic Painting, Robotics++','Digvijay,Akshat,Krishna,Mitesh','Digvijay: Hosting Workshop | Akshat: Photos & Videos | Mitesh & Krishna: Customer Acquisition','2026-03-21','done','','','','','','','','','','','','','','']);
+    cm.appendRow(['C004','Aparna Tulip','Get more people into WhatsApp group, Introduce JX Calendar','4pm-6pm','Class','Public Speaking Class','Digvijay,Krishna,Akshat','Digvijay: Conduct Workshop | Krishna/Akshat: Arrangements + Photos & Videos','2026-03-21','done','','','','','','','','','','','','','','']);
+    cm.appendRow(['C005','Poulomi Avante Kokapet','Enroll 70+ in WhatsApp group, Promote Summer Camp, Introduce JX Calendar','12pm-10pm','Demo+Mass','Robotics Rs199, VR (3 mins) Rs99','Krishna,Mitesh,Akshat,Sai','Mitesh: Customer Acquisition | Krishna: Arrangements | Akshat: Photos & Videos | Sai: Music & Beats','2026-03-22','done','','','','','','','','','','','','','','']);
+    cm.appendRow(['C006','Sample Outreach Community','','','','','Krishna,Mitesh','Mitesh: Outreach lead | Krishna: FM contact','2026-04-10','outreach','Call','250','FM Name Here','9876543210','Rs 2000/day','Rs 3000/day','Rs 500/month','Gate banner allowed','2026-04-10','','','','No','No']);
   }
 }
 
@@ -548,27 +553,54 @@ function getWeek(d) {
 
 <!-- ══ COMMUNITY MODAL ════════════════════════════════ -->
 <div class="modal-overlay" id="comm-modal">
-  <div class="modal" style="max-width:560px">
+  <div class="modal" style="max-width:640px;max-height:90vh;overflow-y:auto">
     <h3 id="comm-modal-title">Add community plan</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="field" style="grid-column:1/-1"><label>Community name</label><input id="c-name" placeholder="e.g. Ramkyone Galaxia"></div>
-      <div class="field"><label>Date</label><input id="c-date" type="date"></div>
-      <div class="field"><label>Time slot</label><input id="c-time" placeholder="e.g. 3pm – 8pm"></div>
-      <div class="field"><label>Workshop type</label>
-        <select id="c-wtype">
-          <option>Demo+Mass</option><option>Class</option><option>Demo only</option><option>Mass workshop</option><option>Other</option>
+      <!-- Basic info -->
+      <div class="field" style="grid-column:1/-1"><label>Society / Community name</label><input id="c-name" placeholder="e.g. Aparna Yellow Bells"></div>
+      <div class="field"><label>Date of visit</label><input id="c-date" type="date"></div>
+      <div class="field"><label>Approach</label>
+        <select id="c-approach">
+          <option>Call</option><option>FM No.</option><option>Physically</option><option>WhatsApp</option><option>Email</option>
         </select>
       </div>
+      <div class="field"><label>No. of flats</label><input id="c-flats" type="number" placeholder="e.g. 250"></div>
       <div class="field"><label>Status</label>
         <select id="c-status">
+          <option value="outreach">Outreach</option>
           <option value="planned">Planned</option>
           <option value="inprogress">In Progress</option>
           <option value="done">Done</option>
           <option value="blocked">Blocked</option>
         </select>
       </div>
-      <div class="field" style="grid-column:1/-1"><label>Benchmark / Acceptance criteria</label><textarea id="c-benchmark" placeholder="e.g. Enroll 50+ in WhatsApp group, Promote Summer Camp, Introduce JX Calendar"></textarea></div>
+      <!-- FM details -->
+      <div class="field"><label>FM name</label><input id="c-fm-name" placeholder="e.g. Ramesh Kumar"></div>
+      <div class="field"><label>FM number</label><input id="c-fm-num" placeholder="e.g. 9876543210"></div>
+      <!-- Rent / space -->
+      <div class="field"><label>Rent — open space</label><input id="c-rent-open" placeholder="e.g. ₹2000/day"></div>
+      <div class="field"><label>Rent — closed space</label><input id="c-rent-closed" placeholder="e.g. ₹3000/day"></div>
+      <div class="field"><label>Rent — notice boards</label><input id="c-rent-notice" placeholder="e.g. ₹500/month"></div>
+      <div class="field"><label>Banner / other marketing</label><input id="c-banner" placeholder="e.g. Gate banner allowed"></div>
+      <!-- Workshop dates -->
+      <div class="field"><label>Date of demo</label><input id="c-date-demo" type="date"></div>
+      <div class="field"><label>Date of mass workshop</label><input id="c-date-mass" type="date"></div>
+      <div class="field"><label>Date of class</label><input id="c-date-class" type="date"></div>
+      <div class="field"><label>Time slot</label><input id="c-time" placeholder="e.g. 3pm – 8pm"></div>
+      <!-- Workshop -->
+      <div class="field"><label>Workshop type</label>
+        <select id="c-wtype">
+          <option>Demo+Mass</option><option>Class</option><option>Demo only</option><option>Mass workshop</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>JX Google Form shared?</label>
+        <select id="c-jx-form"><option value="">—</option><option>Yes</option><option>No</option></select>
+      </div>
+      <div class="field"><label>JX Calendar shared?</label>
+        <select id="c-jx-cal"><option value="">—</option><option>Yes</option><option>No</option></select>
+      </div>
       <div class="field" style="grid-column:1/-1"><label>Workshop details</label><textarea id="c-wdetails" placeholder="e.g. Robotics ₹149, VR (5 mins) ₹99"></textarea></div>
+      <div class="field" style="grid-column:1/-1"><label>Benchmark / acceptance criteria</label><textarea id="c-benchmark" placeholder="e.g. Enroll 50+ in WhatsApp group, Promote Summer Camp"></textarea></div>
       <div class="field" style="grid-column:1/-1"><label>Members assigned (comma separated)</label><input id="c-members" placeholder="e.g. Krishna, Akshat, Mitesh"></div>
       <div class="field" style="grid-column:1/-1"><label>Roles & responsibilities</label><textarea id="c-roles" placeholder="e.g. Mitesh: Customer Acquisition, Krishna: Arrangements..."></textarea></div>
     </div>
@@ -626,6 +658,7 @@ function getWeek(d) {
     <div class="comm-toolbar">
       <div class="comm-toolbar-left">
         <div class="comm-filter active" onclick="filterComm('all',this)">All</div>
+        <div class="comm-filter" onclick="filterComm('outreach',this)">Outreach</div>
         <div class="comm-filter" onclick="filterComm('planned',this)">Planned</div>
         <div class="comm-filter" onclick="filterComm('inprogress',this)">In Progress</div>
         <div class="comm-filter" onclick="filterComm('done',this)">Done</div>
@@ -972,9 +1005,17 @@ async function loadAllData() {
     }));
 
     // Parse communities
+    // Columns: id,name,benchmark,time_slot,workshop_type,workshop_details,members_assigned,roles,date,status,
+    //          approach,no_flats,fm_name,fm_number,rent_open,rent_closed,rent_notice,banner_marketing,
+    //          date_visit,date_demo,date_mass,date_class,jx_form,jx_calendar
     STATE.communities = commRaw.slice(1).filter(r=>r[0]).map(r => ({
       id:r[0], name:r[1], benchmark:r[2], timeSlot:r[3], workshopType:r[4],
-      workshopDetails:r[5], members:r[6], roles:r[7], date:r[8], status:(r[9]||'planned').toLowerCase().replace(' ','')
+      workshopDetails:r[5], members:r[6], roles:r[7], date:r[8],
+      status:(String(r[9]||'planned')).toLowerCase().replace(/\s/g,''),
+      approach:r[10], noFlats:r[11], fmName:r[12], fmNumber:r[13],
+      rentOpen:r[14], rentClosed:r[15], rentNotice:r[16], bannerMarketing:r[17],
+      dateVisit:r[18], dateDemo:r[19], dateMass:r[20], dateClass:r[21],
+      jxForm:r[22], jxCalendar:r[23]
     }));
 
     // Parse availability
@@ -1498,6 +1539,7 @@ let commFilter = 'all';
 let editingCommId = null;
 
 const STATUS_META = {
+  outreach:   { label:'Outreach',    cls:'outreach' },
   blocked:    { label:'Blocked',     cls:'blocked' },
   done:       { label:'Done',        cls:'done' },
   inprogress: { label:'In Progress', cls:'inprogress' },
@@ -1505,8 +1547,8 @@ const STATUS_META = {
 };
 
 function renderCommunities() {
-  // Sort: inprogress first → current-week planned → other planned → blocked → done
-  const STATUS_ORDER = { inprogress:0, planned:1, blocked:2, done:3 };
+  // Sort: outreach first → inprogress → current-week planned → other planned → blocked → done
+  const STATUS_ORDER = { outreach:0, inprogress:1, planned:2, blocked:3, done:4 };
   const all = [...STATE.communities].sort((a,b) => {
     const sa = STATUS_ORDER[a.status] ?? 2;
     const sb = STATUS_ORDER[b.status] ?? 2;
@@ -1548,26 +1590,54 @@ function renderCommunities() {
     const sm      = STATUS_META[c.status] || STATUS_META.planned;
     const members = (c.members||'').split(',').map(m=>m.trim()).filter(Boolean);
     const editBtn = `<button class="comm-edit-btn" onclick="openCommModal('${c.id}')">✏️ Edit</button>`;
-    const dateStr = formatDateIST(c.date);
-    const thisWeekBadge = isThisWeek(c.date)
+    const primaryDate = c.status === 'outreach' ? (c.dateVisit||c.date) : c.date;
+    const dateStr = formatDateIST(primaryDate);
+    const thisWeekBadge = isThisWeek(primaryDate)
       ? `<span style="font-size:10px;font-weight:700;background:var(--teal-l);color:var(--teal-d);padding:3px 8px;border-radius:10px;margin-left:6px">This week</span>`
       : '';
 
-    return `<div class="comm-card" style="${isThisWeek(c.date) ? 'border-color:var(--teal);border-width:1.5px' : ''}">
-      <div class="comm-header">
-        <div class="comm-title-block">
-          <div class="comm-name">${escHtml(c.name)}${thisWeekBadge}</div>
-          <div class="comm-date">${dateStr || ''}${c.timeSlot ? `<br><span style="font-size:11px;color:var(--muted)">${escHtml(c.timeSlot)}</span>` : ''}</div>
+    const cardBorder = isThisWeek(primaryDate) ? 'border-color:var(--teal);border-width:1.5px'
+                     : c.status === 'outreach' ? 'border-color:var(--purple);border-width:1.5px' : '';
+
+    // ── OUTREACH CARD ───────────────────────────────────
+    const outreachBody = `
+      <div class="comm-body">
+        <div class="comm-field">
+          <div class="comm-field-label">FM contact</div>
+          <div class="comm-field-val">${escHtml(c.fmName||'—')}${c.fmNumber?`<br><span style="color:var(--teal);font-weight:600">${escHtml(c.fmNumber)}</span>`:''}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          ${editBtn}
-          <span class="status-pill ${sm.cls}">${sm.label}</span>
+        <div class="comm-field">
+          <div class="comm-field-label">Approach</div>
+          <div class="comm-field-val">${escHtml(c.approach||'—')}${c.noFlats?`<br><span style="font-size:11px;color:var(--muted)">${escHtml(String(c.noFlats))} flats</span>`:''}</div>
         </div>
-      </div>
-      ${c.benchmark ? `<div class="comm-benchmark">
+        <div class="comm-field">
+          <div class="comm-field-label">Space rental</div>
+          <div class="comm-field-val" style="font-size:11px">
+            ${c.rentOpen?`Open: ${escHtml(c.rentOpen)}<br>`:''}
+            ${c.rentClosed?`Closed: ${escHtml(c.rentClosed)}<br>`:''}
+            ${c.rentNotice?`Notice: ${escHtml(c.rentNotice)}`:''}
+            ${!c.rentOpen&&!c.rentClosed&&!c.rentNotice?'—':''}
+          </div>
+        </div>
+        ${c.bannerMarketing?`<div class="comm-field"><div class="comm-field-label">Banner / marketing</div><div class="comm-field-val">${escHtml(c.bannerMarketing)}</div></div>`:''}
+        ${c.dateDemo?`<div class="comm-field"><div class="comm-field-label">Date of demo</div><div class="comm-field-val">${formatDateIST(c.dateDemo)}</div></div>`:''}
+        ${c.dateMass?`<div class="comm-field"><div class="comm-field-label">Date of mass workshop</div><div class="comm-field-val">${formatDateIST(c.dateMass)}</div></div>`:''}
+        ${c.dateClass?`<div class="comm-field"><div class="comm-field-label">Date of class</div><div class="comm-field-val">${formatDateIST(c.dateClass)}</div></div>`:''}
+        <div class="comm-field">
+          <div class="comm-field-label">JX form / calendar</div>
+          <div class="comm-field-val">
+            Form: <b style="color:${c.jxForm==='Yes'?'var(--teal)':'var(--muted)'}">${escHtml(c.jxForm||'—')}</b>
+            &nbsp; Cal: <b style="color:${c.jxCalendar==='Yes'?'var(--teal)':'var(--muted)'}">${escHtml(c.jxCalendar||'—')}</b>
+          </div>
+        </div>
+      </div>`;
+
+    // ── STANDARD CARD ───────────────────────────────────
+    const standardBody = `
+      ${c.benchmark?`<div class="comm-benchmark">
         <div class="comm-benchmark-label">Sprint benchmark (acceptance criteria)</div>
         <div class="comm-benchmark-val">${escHtml(c.benchmark)}</div>
-      </div>` : ''}
+      </div>`:''}
       <div class="comm-body">
         <div class="comm-field">
           <div class="comm-field-label">Workshop type</div>
@@ -1581,9 +1651,22 @@ function renderCommunities() {
           <div class="comm-field-label">Time slot</div>
           <div class="comm-field-val">${escHtml(c.timeSlot||'—')}</div>
         </div>
+      </div>`;
+
+    return `<div class="comm-card" style="${cardBorder}">
+      <div class="comm-header">
+        <div class="comm-title-block">
+          <div class="comm-name">${escHtml(c.name)}${thisWeekBadge}</div>
+          <div class="comm-date">${dateStr||'—'}${c.timeSlot&&c.status!=='outreach'?` · ${escHtml(c.timeSlot)}`:''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${editBtn}
+          <span class="status-pill ${sm.cls}">${sm.label}</span>
+        </div>
       </div>
-      ${members.length ? `<div class="comm-team">${members.map(m=>`<span class="comm-member-tag">${escHtml(m)}</span>`).join('')}</div>` : ''}
-      ${c.roles ? `<div class="comm-roles">${escHtml(c.roles)}</div>` : ''}
+      ${c.status === 'outreach' ? outreachBody : standardBody}
+      ${members.length?`<div class="comm-team">${members.map(m=>`<span class="comm-member-tag">${escHtml(m)}</span>`).join('')}</div>`:''}
+      ${c.roles?`<div class="comm-roles">${escHtml(c.roles)}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -1600,15 +1683,28 @@ function openCommModal(id) {
   editingCommId = id || null;
   const c = id ? STATE.communities.find(x=>x.id===id) : null;
   document.getElementById('comm-modal-title').textContent = c ? 'Edit community' : 'Add community plan';
-  document.getElementById('c-name').value       = c ? c.name : '';
-  document.getElementById('c-date').value       = c ? c.date : '';
-  document.getElementById('c-time').value       = c ? c.timeSlot : '';
-  document.getElementById('c-wtype').value      = c ? c.workshopType : 'Demo+Mass';
-  document.getElementById('c-status').value     = c ? c.status : 'planned';
-  document.getElementById('c-benchmark').value  = c ? c.benchmark : '';
-  document.getElementById('c-wdetails').value   = c ? c.workshopDetails : '';
-  document.getElementById('c-members').value    = c ? c.members : '';
-  document.getElementById('c-roles').value      = c ? c.roles : '';
+  document.getElementById('c-name').value        = c ? c.name : '';
+  document.getElementById('c-date').value        = c ? (c.date||'').split('T')[0] : '';
+  document.getElementById('c-approach').value    = c ? (c.approach||'Call') : 'Call';
+  document.getElementById('c-flats').value       = c ? (c.noFlats||'') : '';
+  document.getElementById('c-status').value      = c ? (c.status||'planned') : 'planned';
+  document.getElementById('c-fm-name').value     = c ? (c.fmName||'') : '';
+  document.getElementById('c-fm-num').value      = c ? (c.fmNumber||'') : '';
+  document.getElementById('c-rent-open').value   = c ? (c.rentOpen||'') : '';
+  document.getElementById('c-rent-closed').value = c ? (c.rentClosed||'') : '';
+  document.getElementById('c-rent-notice').value = c ? (c.rentNotice||'') : '';
+  document.getElementById('c-banner').value      = c ? (c.bannerMarketing||'') : '';
+  document.getElementById('c-date-demo').value   = c ? (c.dateDemo||'').split('T')[0] : '';
+  document.getElementById('c-date-mass').value   = c ? (c.dateMass||'').split('T')[0] : '';
+  document.getElementById('c-date-class').value  = c ? (c.dateClass||'').split('T')[0] : '';
+  document.getElementById('c-time').value        = c ? (c.timeSlot||'') : '';
+  document.getElementById('c-wtype').value       = c ? (c.workshopType||'Demo+Mass') : 'Demo+Mass';
+  document.getElementById('c-wdetails').value    = c ? (c.workshopDetails||'') : '';
+  document.getElementById('c-jx-form').value     = c ? (c.jxForm||'') : '';
+  document.getElementById('c-jx-cal').value      = c ? (c.jxCalendar||'') : '';
+  document.getElementById('c-benchmark').value   = c ? (c.benchmark||'') : '';
+  document.getElementById('c-members').value     = c ? (c.members||'') : '';
+  document.getElementById('c-roles').value       = c ? (c.roles||'') : '';
   document.getElementById('comm-delete-btn').style.display = c ? 'inline-block' : 'none';
   document.getElementById('comm-modal').classList.add('open');
 }
@@ -1618,6 +1714,9 @@ function closeCommModal() { document.getElementById('comm-modal').classList.remo
 async function saveComm() {
   const name = document.getElementById('c-name').value.trim();
   if (!name) { toast('Community name is required','error'); return; }
+  // Column order: id,name,benchmark,time_slot,workshop_type,workshop_details,members_assigned,roles,date,status,
+  //              approach,no_flats,fm_name,fm_number,rent_open,rent_closed,rent_notice,banner_marketing,
+  //              date_visit,date_demo,date_mass,date_class,jx_form,jx_calendar
   const row = [
     editingCommId || ('C'+Date.now()),
     name,
@@ -1628,7 +1727,21 @@ async function saveComm() {
     document.getElementById('c-members').value.trim(),
     document.getElementById('c-roles').value.trim(),
     document.getElementById('c-date').value,
-    document.getElementById('c-status').value
+    document.getElementById('c-status').value,
+    document.getElementById('c-approach').value,
+    document.getElementById('c-flats').value,
+    document.getElementById('c-fm-name').value.trim(),
+    document.getElementById('c-fm-num').value.trim(),
+    document.getElementById('c-rent-open').value.trim(),
+    document.getElementById('c-rent-closed').value.trim(),
+    document.getElementById('c-rent-notice').value.trim(),
+    document.getElementById('c-banner').value.trim(),
+    document.getElementById('c-date').value,
+    document.getElementById('c-date-demo').value,
+    document.getElementById('c-date-mass').value,
+    document.getElementById('c-date-class').value,
+    document.getElementById('c-jx-form').value,
+    document.getElementById('c-jx-cal').value
   ];
   if (editingCommId) {
     const idx = STATE.communities.findIndex(c=>c.id===editingCommId);
