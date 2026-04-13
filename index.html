@@ -1860,18 +1860,31 @@ function renderAvailability() {
   const matrix = document.getElementById('avail-matrix');
   if (matrix && STATE.team.length) {
     // latest availability per member
+    // Build latest-per-member map — key = first part before – or full string
     const latestByMember = {};
-    [...STATE.availability].reverse().forEach(a => {
-      const key = a.member.split('–')[0].trim();
+    STATE.availability.forEach(a => {
+      const key = a.member.split('–')[0].split('-')[0].trim();
       if (!latestByMember[key]) latestByMember[key] = a.unavailDays;
+      // also store under full string in case team name includes role
+      if (!latestByMember[a.member]) latestByMember[a.member] = a.unavailDays;
     });
 
+    // Helper: find unavail for a team member by trying name variants
+    function getUnavail(teamName) {
+      if (teamName in latestByMember) return { found: true, days: latestByMember[teamName] };
+      // try first word match
+      const firstName = teamName.split(' ')[0];
+      const match = Object.keys(latestByMember).find(k => k.startsWith(firstName) && k.includes(teamName.split(' ')[1]||''));
+      if (match) return { found: true, days: latestByMember[match] };
+      return { found: false, days: '' };
+    }
+
     matrix.innerHTML = STATE.team.map(t => {
-      const unavailStr = latestByMember[t.name] || '';
+      const { found, days: unavailStr } = getUnavail(t.name);
       const unavailSet = new Set(unavailStr.split(',').map(s=>s.trim()).filter(Boolean));
       const cells = WEEK_DAYS.map(d => {
         if (unavailSet.has(d)) return `<div class="avail-cell busy">OFF</div>`;
-        if (unavailStr === '' && !latestByMember[t.name]) return `<div class="avail-cell unknown">?</div>`;
+        if (!found)            return `<div class="avail-cell unknown">?</div>`;
         return `<div class="avail-cell free">✓</div>`;
       }).join('');
       return `<div class="avail-team-row">
