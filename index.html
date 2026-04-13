@@ -219,7 +219,8 @@ pre.script-box{background:#1e1e1e;color:#d4d4d4;border-radius:10px;padding:14px;
 .comm-status{flex-shrink:0}
 .status-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px}
 .status-pill.outreach{background:var(--purple-l);color:var(--purple-d)}
-.status-pill.blocked{background:var(--red-l);color:var(--red-d)}
+.status-pill.blocked,.status-pill.cancelled{background:var(--red-l);color:var(--red-d)}
+.status-pill.prospective{background:var(--teal-l);color:var(--teal-d)}
 .status-pill.done{background:var(--teal-l);color:var(--teal-d)}
 .status-pill.inprogress{background:var(--amber-l);color:var(--amber-d)}
 .status-pill.planned{background:var(--purple-l);color:var(--purple-d)}
@@ -568,10 +569,11 @@ function getWeek(d) {
       <div class="field"><label>Status</label>
         <select id="c-status">
           <option value="outreach">Outreach</option>
-          <option value="planned">Planned</option>
           <option value="inprogress">In Progress</option>
+          <option value="confirmed">Confirmed — Not yet started</option>
           <option value="done">Done</option>
-          <option value="blocked">Blocked</option>
+          <option value="prospective">Prospective</option>
+          <option value="cancelled">Cancelled</option>
         </select>
       </div>
       <!-- FM details -->
@@ -659,10 +661,11 @@ function getWeek(d) {
       <div class="comm-toolbar-left">
         <div class="comm-filter active" onclick="filterComm('all',this)">All</div>
         <div class="comm-filter" onclick="filterComm('outreach',this)">Outreach</div>
-        <div class="comm-filter" onclick="filterComm('planned',this)">Planned</div>
         <div class="comm-filter" onclick="filterComm('inprogress',this)">In Progress</div>
+        <div class="comm-filter" onclick="filterComm('confirmed',this)">Confirmed</div>
         <div class="comm-filter" onclick="filterComm('done',this)">Done</div>
-        <div class="comm-filter" onclick="filterComm('blocked',this)">Blocked</div>
+        <div class="comm-filter" onclick="filterComm('prospective',this)">Prospective</div>
+        <div class="comm-filter" onclick="filterComm('cancelled',this)">Cancelled</div>
       </div>
       <button class="comm-add-btn" onclick="openCommModal()">+ Add community</button>
     </div>
@@ -1011,7 +1014,7 @@ async function loadAllData() {
     STATE.communities = commRaw.slice(1).filter(r=>r[0]).map(r => ({
       id:r[0], name:r[1], benchmark:r[2], timeSlot:r[3], workshopType:r[4],
       workshopDetails:r[5], members:r[6], roles:r[7], date:r[8],
-      status:(String(r[9]||'planned')).toLowerCase().replace(/\s/g,''),
+      status: normaliseStatus(r[9]),
       approach:r[10], noFlats:r[11], fmName:r[12], fmNumber:r[13],
       rentOpen:r[14], rentClosed:r[15], rentNotice:r[16], bannerMarketing:r[17],
       dateVisit:r[18], dateDemo:r[19], dateMass:r[20], dateClass:r[21],
@@ -1068,6 +1071,18 @@ function updateSprintPill() {
 }
 
 // ── DATE HELPERS ──────────────────────────────────────
+// Maps Google Sheet status text → internal key
+function normaliseStatus(raw) {
+  const s = String(raw||'').toLowerCase().replace(/[\s\-_]/g,'');
+  if (s.includes('outreach'))   return 'outreach';
+  if (s.includes('inprogress') || s.includes('progress')) return 'inprogress';
+  if (s.includes('confirmed'))  return 'confirmed';
+  if (s.includes('done') || s.includes('complete')) return 'done';
+  if (s.includes('cancel'))     return 'cancelled';
+  if (s.includes('prospect'))   return 'prospective';
+  return s || 'prospective';
+}
+
 function formatDateIST(raw) {
   if (!raw) return '';
   try {
@@ -1539,16 +1554,17 @@ let commFilter = 'all';
 let editingCommId = null;
 
 const STATUS_META = {
-  outreach:   { label:'Outreach',    cls:'outreach' },
-  blocked:    { label:'Blocked',     cls:'blocked' },
-  done:       { label:'Done',        cls:'done' },
-  inprogress: { label:'In Progress', cls:'inprogress' },
-  planned:    { label:'Planned',     cls:'planned' }
+  outreach:           { label:'Outreach',                cls:'outreach' },
+  inprogress:         { label:'In Progress',             cls:'inprogress' },
+  confirmed:          { label:'Confirmed — Not Started', cls:'planned' },
+  done:               { label:'Done',                    cls:'done' },
+  cancelled:          { label:'Cancelled',               cls:'blocked' },
+  prospective:        { label:'Prospective',             cls:'prospective' }
 };
 
 function renderCommunities() {
   // Sort: outreach first → inprogress → current-week planned → other planned → blocked → done
-  const STATUS_ORDER = { outreach:0, inprogress:1, planned:2, blocked:3, done:4 };
+  const STATUS_ORDER = { outreach:0, inprogress:1, confirmed:2, prospective:3, done:4, cancelled:5 };
   const all = [...STATE.communities].sort((a,b) => {
     const sa = STATUS_ORDER[a.status] ?? 2;
     const sb = STATUS_ORDER[b.status] ?? 2;
@@ -1565,16 +1581,16 @@ function renderCommunities() {
   // Summary strip
   const strip = document.getElementById('comm-summary-strip');
   if (strip) {
-    const total   = all.length;
-    const done    = all.filter(c=>c.status==='done').length;
-    const blocked = all.filter(c=>c.status==='blocked').length;
-    const active  = all.filter(c=>c.status==='inprogress').length;
-    const thisWk  = all.filter(c=>isThisWeek(c.date)).length;
+    const total      = all.length;
+    const done       = all.filter(c=>c.status==='done').length;
+    const blocked    = all.filter(c=>c.status==='cancelled').length;
+    const active     = all.filter(c=>c.status==='inprogress').length;
+    const thisWk     = all.filter(c=>isThisWeek(c.date)).length;
     strip.innerHTML = `
       <div class="comm-stat"><div class="comm-stat-val" style="color:var(--amber)">${total}</div><div class="comm-stat-label">Total communities</div></div>
       <div class="comm-stat"><div class="comm-stat-val" style="color:var(--purple)">${thisWk}</div><div class="comm-stat-label">This week</div></div>
       <div class="comm-stat"><div class="comm-stat-val" style="color:var(--teal)">${done}</div><div class="comm-stat-label">Completed</div></div>
-      <div class="comm-stat"><div class="comm-stat-val" style="color:var(--red)">${blocked}</div><div class="comm-stat-label">Blocked</div></div>
+      <div class="comm-stat"><div class="comm-stat-val" style="color:var(--red)">${blocked}</div><div class="comm-stat-label">Cancelled</div></div>
     `;
   }
 
