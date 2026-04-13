@@ -1603,7 +1603,7 @@ function renderCommunities() {
   }
 
   list.innerHTML = filtered.map(c => {
-    const sm      = STATUS_META[c.status] || STATUS_META.planned;
+    const sm = STATUS_META[c.status] || { label: c.status || 'Unknown', cls: 'prospective' };
     const members = (c.members||'').split(',').map(m=>m.trim()).filter(Boolean);
     const editBtn = `<button class="comm-edit-btn" onclick="openCommModal('${c.id}')">✏️ Edit</button>`;
     const primaryDate = c.status === 'outreach' ? (c.dateVisit||c.date) : c.date;
