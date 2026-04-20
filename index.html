@@ -1859,29 +1859,62 @@ function renderAvailability() {
   // Build team matrix — latest entry per member wins
   const matrix = document.getElementById('avail-matrix');
   if (matrix && STATE.team.length) {
-    // latest availability per member
-    // Build latest-per-member map — key = first part before – or full string
+
+    // Get current week Mon 00:00 → Sun 23:59 in IST
+    const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const dayNum = nowIST.getDay() || 7; // Mon=1…Sun=7
+    const weekMon = new Date(nowIST); weekMon.setDate(nowIST.getDate() - dayNum + 1); weekMon.setHours(0,0,0,0);
+    const weekSun = new Date(weekMon); weekSun.setDate(weekMon.getDate() + 6); weekSun.setHours(23,59,59,999);
+
+    // Parse submittedAt timestamp — format "20 Apr, 12:49 pm IST"
+    function parseSubmittedAt(ts) {
+      if (!ts) return null;
+      try {
+        // "20 Apr, 12:49 pm IST" → remove IST, parse rest
+        const clean = String(ts).replace(' IST','').replace(' pm',' PM').replace(' am',' AM');
+        const d = new Date(clean + ' 2026'); // assume current year
+        return isNaN(d) ? null : d;
+      } catch(e) { return null; }
+    }
+
+    // Filter to this week's entries only, newest-first within week
+    const thisWeekEntries = STATE.availability
+      .map(a => ({ ...a, _ts: parseSubmittedAt(a.submittedAt) }))
+      .filter(a => {
+        if (!a._ts) return true; // can't parse → include to be safe
+        return a._ts >= weekMon && a._ts <= weekSun;
+      })
+      .sort((a, b) => {
+        if (!a._ts || !b._ts) return 0;
+        return b._ts - a._ts; // newest first
+      });
+
+    // Build latest-per-member from THIS WEEK only
     const latestByMember = {};
-    STATE.availability.forEach(a => {
+    const submittedThisWeek = new Set(); // track who submitted this week
+
+    thisWeekEntries.forEach(a => {
       const key = a.member.split('–')[0].split('-')[0].trim();
+      submittedThisWeek.add(key);
       if (!latestByMember[key]) latestByMember[key] = a.unavailDays;
-      // also store under full string in case team name includes role
       if (!latestByMember[a.member]) latestByMember[a.member] = a.unavailDays;
     });
 
     // Helper: find unavail for a team member by trying name variants
     function getUnavail(teamName) {
+      // exact match
       if (teamName in latestByMember) return { found: true, days: latestByMember[teamName] };
-      // try first word match
-      const firstName = teamName.split(' ')[0];
-      const match = Object.keys(latestByMember).find(k => k.startsWith(firstName) && k.includes(teamName.split(' ')[1]||''));
+      // partial: "Mitesh" matches "Mitesh – Community Acquisition"
+      const match = Object.keys(latestByMember).find(k =>
+        k.startsWith(teamName) || teamName.startsWith(k.split(' ')[0]) && k.includes(teamName.split(' ')[1]||teamName)
+      );
       if (match) return { found: true, days: latestByMember[match] };
       return { found: false, days: '' };
     }
 
     matrix.innerHTML = STATE.team.map(t => {
       const { found, days: unavailStr } = getUnavail(t.name);
-      const unavailSet = new Set(unavailStr.split(',').map(s=>s.trim()).filter(Boolean));
+      const unavailSet = new Set((unavailStr||'').split(',').map(s=>s.trim()).filter(Boolean));
       const cells = WEEK_DAYS.map(d => {
         if (unavailSet.has(d)) return `<div class="avail-cell busy">OFF</div>`;
         if (!found)            return `<div class="avail-cell unknown">?</div>`;
