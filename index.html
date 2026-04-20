@@ -1866,28 +1866,24 @@ function renderAvailability() {
     const weekMon = new Date(nowIST); weekMon.setDate(nowIST.getDate() - dayNum + 1); weekMon.setHours(0,0,0,0);
     const weekSun = new Date(weekMon); weekSun.setDate(weekMon.getDate() + 6); weekSun.setHours(23,59,59,999);
 
-    // Parse submittedAt timestamp — format "20 Apr, 12:49 pm IST"
+    // Robust date extractor — handles "20 Apr, 12:49 pm IST", "13 Apr at 07:00 PM IST", etc.
+    // Just extracts day + month, ignores time formatting differences
     function parseSubmittedAt(ts) {
       if (!ts) return null;
-      try {
-        // "20 Apr, 12:49 pm IST" → remove IST, parse rest
-        const clean = String(ts).replace(' IST','').replace(' pm',' PM').replace(' am',' AM');
-        const d = new Date(clean + ' 2026'); // assume current year
-        return isNaN(d) ? null : d;
-      } catch(e) { return null; }
+      const m = String(ts).match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+      if (!m) return null;
+      const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+      return new Date(new Date().getFullYear(), months[m[2].toLowerCase()], parseInt(m[1]));
     }
 
     // Filter to this week's entries only, newest-first within week
     const thisWeekEntries = STATE.availability
       .map(a => ({ ...a, _ts: parseSubmittedAt(a.submittedAt) }))
       .filter(a => {
-        if (!a._ts) return true; // can't parse → include to be safe
+        if (!a._ts) return false; // can't parse date → exclude (safer than including old data)
         return a._ts >= weekMon && a._ts <= weekSun;
       })
-      .sort((a, b) => {
-        if (!a._ts || !b._ts) return 0;
-        return b._ts - a._ts; // newest first
-      });
+      .sort((a, b) => b._ts - a._ts); // newest first
 
     // Build latest-per-member from THIS WEEK only
     const latestByMember = {};
